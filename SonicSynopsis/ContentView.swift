@@ -38,6 +38,7 @@ func requestMicrophonePermission() {
         @State var scaleBigCircle = 0.5
         @State var scaleMediumCircle = 0.5
         @State var scaleSmallCircle = 0.5
+        @State var audios : [URL] = []
     
         private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
         @available(iOS 15.0, *)
@@ -50,7 +51,9 @@ func requestMicrophonePermission() {
                     .font(.title)
                     .foregroundColor(.white)
                 Spacer(minLength: 50)
-               
+                List(self.audios, id: \.self){i in
+                    Text(i.relativeString)
+                }
                 Text("\(timeString(time:timeElapsed))")
                     .font(.system(size: 75))
                     .fontWeight(.light)
@@ -91,7 +94,7 @@ func requestMicrophonePermission() {
                     {
                         do{
                             let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                            let fileName = url.appendingPathComponent("myRCD.m4a")
+                            let fileName = url.appendingPathComponent("my\(self.audios.count + 1)RCD.m4a")
                             let settings = [
                                 AVFormatIDKey : Int(kAudioFormatMPEG4AAC),
                                 AVSampleRateKey : 12000,
@@ -117,6 +120,9 @@ func requestMicrophonePermission() {
                         scaleMediumCircle = 1.2
                         scaleSmallCircle = 1.2
                         self.isRunning = false
+                        self.recorder.stop() 
+                        self.getAudios()
+                        return
                     }
                    
                 }
@@ -136,6 +142,9 @@ func requestMicrophonePermission() {
                                 if !status{
                                     self.alert.toggle()
                                     
+                                }
+                                else {
+                                    self.getAudios()
                                 }
                             }
                         }
@@ -167,6 +176,23 @@ func requestMicrophonePermission() {
             let seconds = Int(time)%60
             let milliseconds = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
             return String(format: "%02d.%02d:%02d",minutes,seconds,milliseconds)
+        }
+        
+        func getAudios(){
+            do {
+                let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                
+                let result = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .producesRelativePathURLs)
+                
+                self.audios.removeAll()
+                
+                for i in result {
+                    self.audios.append(i)
+                }
+            }
+            catch {
+                print(error.localizedDescription)
+            }
         }
     }
 
