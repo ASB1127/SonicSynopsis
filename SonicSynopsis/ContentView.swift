@@ -399,10 +399,30 @@ struct ContentView: View {
         }}
     }
     
-    private func transcribeFile(){
+    private func getDir() -> URL {
         
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        
+        return paths.first!
     }
     
+    private func transcribeFile(name:String){
+           let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
+           let speechRecognizer = SFSpeechRecognizer()
+           let request = SFSpeechURLRecognitionRequest(url: bundle)
+           
+           speechRecognizer?.recognitionTask(with: request){
+               (result, error) in
+               guard let result = result
+               else{
+                   print("ERROR! \(String(describing: error))")
+                   return
+               }
+               if result.isFinal {
+                   print(result.bestTranscription.formattedString)
+               }
+           }
+       }
     
     private func requestMicrophonePermission() {
         
