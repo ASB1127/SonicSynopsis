@@ -319,8 +319,19 @@ struct ContentView: View {
                     .background(Color.blue)
                     .cornerRadius(10)
             }
+            
+            Button(action: {
+                requestTranscribePermission()
+                transcribeFile(name: "music")
+            }) {
+                Text("Transcribe")
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
+            }
             .padding(.top, 20)
-            .disabled(audios.isEmpty) // Disable the button if there are no recordings
+            .disabled(audios.isEmpty)
         }
         .padding()
         .preferredColorScheme(.dark)
@@ -348,8 +359,6 @@ struct ContentView: View {
             scaleMediumCircle = 1.2
             scaleSmallCircle = 1.2
             isRunning = true
-        } catch {
-            print(error.localizedDescription)
         }
     }
 
