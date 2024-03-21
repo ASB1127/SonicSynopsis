@@ -320,7 +320,21 @@ struct ContentView: View {
                     .cornerRadius(10)
             }
             .padding(.top, 20)
-            .disabled(audios.isEmpty) // Disable the button if there are no recordings
+            .disabled(audios.isEmpty)
+            
+            Button(action: {
+                
+                requestTranscribePermission()
+                //transcribeFile(url: <#T##URL#>)
+            }) {
+                Text("Transcribe Recording")
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
+            }
+            .padding(.top, 20)
+            .disabled(audios.isEmpty)
         }
         .padding()
         .preferredColorScheme(.dark)
@@ -348,8 +362,6 @@ struct ContentView: View {
             scaleMediumCircle = 1.2
             scaleSmallCircle = 1.2
             isRunning = true
-        } catch {
-            print(error.localizedDescription)
         }
     }
 
@@ -360,12 +372,12 @@ struct ContentView: View {
         scaleSmallCircle = 1.2
         isRunning = false
         recorder.stop()
-        getAudios()
+       
     }
 
     private func playLastRecording() {
         recorder.play()
-        recorder.play(name:"music") // Recorded name
+        recorder.play(name:"music")
     }
 
     private func timeString(time: TimeInterval) -> String {
@@ -394,13 +406,26 @@ struct ContentView: View {
                 print("Transcription Ready TO Go")
             }
             else{
-                print("Transcription permission was declined.")
+                print("Transcription permission was denied")
             }
         }}
     }
     
-    private func transcribeFile(){
+    private func transcribeFile(url: URL){
+        let speechRecognizer = SFSpeechRecognizer()
+        let request = SFSpeechURLRecognitionRequest(url: url)
         
+        speechRecognizer?.recognitionTask(with: request){
+            (result, error) in
+            guard let result = result
+            else{
+                print("ERROR! \(String(describing: error))")
+                return
+            }
+            if result.isFinal {
+                print(result.bestTranscription.formattedString)
+            }
+        }
     }
     
     
@@ -409,16 +434,11 @@ struct ContentView: View {
         AVAudioSession.sharedInstance().requestRecordPermission { granted in
             if granted {
                
+                print("Permission Granted")
                 
-                
-                // The user granted access. Present recording interface.
             } else {
                 
-                // Display a SwiftUI view containing the message
-                
-                // Present message to user indicating that recording
-                // can't be performed until they change their preference
-                // under Settings -> Privacy -> Microphone
+               print("Message was not Granted")
                 
             }
         }
