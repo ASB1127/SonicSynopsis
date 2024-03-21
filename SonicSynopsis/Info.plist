@@ -10,5 +10,7 @@
 		</dict>
 		<dict/>
 	</array>
+	<key>UIApplicationSupportsPrintCommand</key>
+	<false/>
 </dict>
 </plist>
