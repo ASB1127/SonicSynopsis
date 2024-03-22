@@ -7,6 +7,7 @@
 import AVFoundation
 import SwiftUI
 import Speech
+import GoogleGenerativeAI
 
 class KAudioRecorder: NSObject {
 
@@ -24,7 +25,7 @@ class KAudioRecorder: NSObject {
     var url:URL?
     var time:Int = 0
     var recordName:String?
-    
+   
     override init() {
         super.init()
 
@@ -231,10 +232,10 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
 
 
     
-
+var transcription:String?
 struct ContentView: View {
     @State private var session: AVAudioSession!
-   
+    
    
     @State private var recordStop = "Record"
     @State private var alert = false
@@ -246,6 +247,7 @@ struct ContentView: View {
     @State private var audios: [URL] = []
     @State private var audioPlayer: AVAudioPlayer?
 
+    
     
     var recorder = KAudioRecorder.shared
 
@@ -322,7 +324,14 @@ struct ContentView: View {
             
             Button(action: {
                 requestTranscribePermission()
-                transcribeFile(name: "music")
+                transcribeFile(name: "music"){ transcription in
+                    if let transcription = transcription {
+                        print("Transcription:", transcription)
+                    }
+                    else{
+                        print("Transcription is nil.")
+                    }
+                }
             }) {
                 Text("Transcribe")
                     .foregroundColor(.white)
@@ -330,8 +339,21 @@ struct ContentView: View {
                     .background(Color.blue)
                     .cornerRadius(10)
             }
+            
+            Button(action: {
+                Task{
+                    print(transcription!)
+                    await Summarize(transcription!)
+                }
+            }) {
+                Text("Summarize")
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
+            }
             .padding(.top, 20)
-            .disabled(audios.isEmpty)
+           
         }
         .padding()
         .preferredColorScheme(.dark)
@@ -339,6 +361,28 @@ struct ContentView: View {
             requestMicrophonePermission()
         }
     }
+    
+    enum APIKey {
+      // Fetch the API key from `GenerativeAI-Info.plist`
+      static var `default`: String {
+        guard let filePath = Bundle.main.path(forResource: "GenerativeAI-Info", ofType: "plist")
+        else {
+          fatalError("Couldn't find file 'GenerativeAI-Info.plist'.")
+        }
+        let plist = NSDictionary(contentsOfFile: filePath)
+        guard let value = plist?.object(forKey: "API_KEY") as? String else {
+          fatalError("Couldn't find key 'API_KEY' in 'GenerativeAI-Info.plist'.")
+        }
+        if value.starts(with: "_") {
+          fatalError(
+            "Follow the instructions at https://ai.google.dev/tutorials/setup to get an API key."
+          )
+        }
+       
+        return value
+      }
+    }
+
 
     private func startRecording() {
         do {
@@ -415,7 +459,7 @@ struct ContentView: View {
         return paths.first!
     }
     
-    private func transcribeFile(name:String){
+    private func transcribeFile(name:String, completion: @escaping (String?)-> Void){
            let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
            let speechRecognizer = SFSpeechRecognizer()
            let request = SFSpeechURLRecognitionRequest(url: bundle)
@@ -429,6 +473,8 @@ struct ContentView: View {
                }
                if result.isFinal {
                    print(result.bestTranscription.formattedString)
+                   transcription = result.bestTranscription.formattedString
+                   //return result.bestTranscription.formattedString
                }
            }
        }
@@ -452,5 +498,24 @@ struct ContentView: View {
             }
         }
         
+    }
+ 
+        
+    private func Summarize(_ summarize:String) async{
+        
+        let model = GenerativeModel(name: "gemini-pro", apiKey: APIKey.default)
+        let prompt = "Give me a simple summary in note taking format of the following " + summarize
+        
+        do{
+            let response = try await model.generateContent(prompt)
+            if let text = response.text {
+              print(text)
+            }
+        }
+        catch{
+            print("Error",error)
+        }
+        
+     
     }
 }

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FAA960582BAD2402001E62A8 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = FAA960572BAD2402001E62A8 /* GoogleGenerativeAI */; };
+		FAA9605A2BAD2515001E62A8 /* GenerativeAI-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FAA960592BAD2515001E62A8 /* GenerativeAI-Info.plist */; };
 		FAFEE9A42B9FD10000B8A7A6 /* SonicSynopsisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFEE9A32B9FD10000B8A7A6 /* SonicSynopsisApp.swift */; };
 		FAFEE9A62B9FD10000B8A7A6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFEE9A52B9FD10000B8A7A6 /* ContentView.swift */; };
 		FAFEE9A82B9FD10300B8A7A6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAFEE9A72B9FD10300B8A7A6 /* Assets.xcassets */; };
@@ -14,6 +16,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FAA960592BAD2515001E62A8 /* GenerativeAI-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GenerativeAI-Info.plist"; sourceTree = "<group>"; };
 		FAFEE9A02B9FD10000B8A7A6 /* SonicSynopsis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SonicSynopsis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAFEE9A32B9FD10000B8A7A6 /* SonicSynopsisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonicSynopsisApp.swift; sourceTree = "<group>"; };
 		FAFEE9A52B9FD10000B8A7A6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -27,6 +30,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAA960582BAD2402001E62A8 /* GoogleGenerativeAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -36,6 +40,7 @@
 		FAFEE9972B9FD10000B8A7A6 = {
 			isa = PBXGroup;
 			children = (
+				FAA960592BAD2515001E62A8 /* GenerativeAI-Info.plist */,
 				FAFEE9A22B9FD10000B8A7A6 /* SonicSynopsis */,
 				FAFEE9A12B9FD10000B8A7A6 /* Products */,
 			);
@@ -85,6 +90,9 @@
 			dependencies = (
 			);
 			name = SonicSynopsis;
+			packageProductDependencies = (
+				FAA960572BAD2402001E62A8 /* GoogleGenerativeAI */,
+			);
 			productName = SonicSynopsis;
 			productReference = FAFEE9A02B9FD10000B8A7A6 /* SonicSynopsis.app */;
 			productType = "com.apple.product-type.application";
@@ -113,6 +121,9 @@
 				Base,
 			);
 			mainGroup = FAFEE9972B9FD10000B8A7A6;
+			packageReferences = (
+				FAA960562BAD2402001E62A8 /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
+			);
 			productRefGroup = FAFEE9A12B9FD10000B8A7A6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -129,6 +140,7 @@
 			files = (
 				FAFEE9AB2B9FD10300B8A7A6 /* Preview Assets.xcassets in Resources */,
 				FAFEE9A82B9FD10300B8A7A6 /* Assets.xcassets in Resources */,
+				FAA9605A2BAD2515001E62A8 /* GenerativeAI-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,6 +366,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FAA960562BAD2402001E62A8 /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/generative-ai-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.8;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FAA960572BAD2402001E62A8 /* GoogleGenerativeAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAA960562BAD2402001E62A8 /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
+			productName = GoogleGenerativeAI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FAFEE9982B9FD10000B8A7A6 /* Project object */;
 }
