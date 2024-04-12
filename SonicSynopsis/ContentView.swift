@@ -202,7 +202,7 @@ class KAudioRecorder: NSObject {
         return result
     }
     
-}//
+}
 
 extension KAudioRecorder: AVAudioRecorderDelegate {
     
@@ -235,8 +235,6 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
 var transcription:String?
 struct ContentView: View {
     @State private var session: AVAudioSession!
-    
-   
     @State private var recordStop = "Record"
     @State private var alert = false
     @State private var timeElapsed: TimeInterval = 0
@@ -246,188 +244,147 @@ struct ContentView: View {
     @State private var scaleSmallCircle = 0.5
     @State private var audios: [URL] = []
     @State private var audioPlayer: AVAudioPlayer?
-
-    
-    
     var recorder = KAudioRecorder.shared
-
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack {
-            Spacer()
-            Text("Audio Recorder")
-                .font(.title)
-                .foregroundColor(.white)
-            Spacer(minLength: 50)
-            List(audios, id: \.self) { audio in
-                Text(audio.lastPathComponent)
-            }
-            Text("\(timeString(time: timeElapsed))")
-                .font(.system(size: 75))
-                .fontWeight(.light)
-                .padding()
-                .foregroundColor(.white)
+        NavigationView {
+            VStack {
+              
+                           Spacer()
+                           Text("Audio Recorder")
+                               .font(.title)
+                               .foregroundColor(.white)
+                           Spacer(minLength: 45)
+                           List(audios, id: \.self) { audio in
+                               Text(audio.lastPathComponent)
+                           }
+                           Text("\(timeString(time: timeElapsed))")
+                               .font(.system(size: 75))
+                               .fontWeight(.light)
+                               .padding()
+                               .foregroundColor(.white)
 
-            Spacer(minLength: 150)
-            ZStack {
-                Circle()
-                    .frame(width: 250, height: 250, alignment: .center)
-                    .scaleEffect(CGFloat(scaleBigCircle))
-                    .foregroundColor(Color(.systemGray6))
-                    .animation(Animation.easeOut(duration: 1).repeatForever(autoreverses: true))
-                    .offset(y: -120)
-                Circle()
-                    .frame(width: 200, height: 200, alignment: .center)
-                    .scaleEffect(CGFloat(scaleMediumCircle))
-                    .foregroundColor(Color(.systemGray4))
-                    .animation(Animation.easeInOut(duration: 1).repeatForever(autoreverses: true))
-                    .offset(y: -120)
-                Circle()
-                    .frame(width: 150, height: 150, alignment: .center)
-                    .scaleEffect(CGFloat(scaleSmallCircle))
-                    .foregroundColor(Color(.systemGray4))
-                    .animation(Animation.easeInOut(duration: 1).repeatForever(autoreverses: true))
-                    .offset(y: -120)
-                Circle()
-                    .frame(width: 100, height: 100, alignment: .center)
-                    .foregroundColor(Color(.systemIndigo))
-                    .overlay(Text(recordStop))
-                    .offset(y: -120)
-            }
-            .onTapGesture {
-                if recordStop == "Record" {
-                  
-                    startRecording()
-                } else {
-                    stopRecording()
-                }
-            }
-            .alert(isPresented: $alert, content: {
-                Alert(title: Text("Error"), message: Text("Enable Access"))
-            })
-            .onReceive(timer) { _ in
-                if isRunning {
-                    timeElapsed += 0.1
+                           Spacer(minLength: 120)
+                        
+                           ZStack {
+                               Circle()
+                                   .frame(width: 250, height: 250, alignment: .center)
+                                   .scaleEffect(CGFloat(scaleBigCircle))
+                                   .foregroundColor(Color(.systemGray6))
+                                   .animation(Animation.easeOut(duration: 1).repeatForever(autoreverses: true))
+                                   .offset(y: -120)
+                               Circle()
+                                   .frame(width: 200, height: 200, alignment: .center)
+                                   .scaleEffect(CGFloat(scaleMediumCircle))
+                                   .foregroundColor(Color(.systemGray4))
+                                   .animation(Animation.easeInOut(duration: 1).repeatForever(autoreverses: true))
+                                   .offset(y: -120)
+                               Circle()
+                                   .frame(width: 150, height: 150, alignment: .center)
+                                   .scaleEffect(CGFloat(scaleSmallCircle))
+                                   .foregroundColor(Color(.systemGray4))
+                                   .animation(Animation.easeInOut(duration: 1).repeatForever(autoreverses: true))
+                                   .offset(y: -120)
+                               Circle()
+                                   .frame(width: 100, height: 100, alignment: .center)
+                                   .foregroundColor(Color(.systemIndigo))
+                                   .overlay(Text(recordStop))
+                                   .offset(y: -120)
+                           }
+                           .onTapGesture {
+                               if recordStop == "Record" {
+                                 
+                                   startRecording()
+                               } else {
+                                   stopRecording()
+                               }
+                           }
+                           .alert(isPresented: $alert, content: {
+                               Alert(title: Text("Error"), message: Text("Enable Access"))
+                           })
+                           .onReceive(timer) { _ in
+                               if isRunning {
+                                   timeElapsed += 0.1
+                               }
+                           }
+                        
+                       
+                
+                
+                           Button(action: {
+                               playLastRecording()
+                           }) {
+                               Text("Play Last Recording")
+                                   .foregroundColor(.white)
+                                   .padding()
+                                   .background(Color(red: 0.69, green: 0.61, blue: 0.85))
+                                   .cornerRadius(10)
+                           }
+                           .padding(.bottom, 10) // Adjust bottom padding to move the button closer
+                                           
+                            Spacer(minLength: 20)
+               
+                           
+                NavigationLink(destination: SecondView()) {
+                    Text("Manage Recordings")
                 }
             }
             
-            Button(action: {
-                playLastRecording()
-            }) {
-                Text("Play Last Recording")
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
+            .navigationBarTitle("Audio Recorder")
+            .background(Color.black.edgesIgnoringSafeArea(.all))
+            .onAppear {
+                requestMicrophonePermission()
+                getAudios()
             }
-            
-            Button(action: {
-                requestTranscribePermission()
-                transcribeFile(name: "music"){ transcription in
-                    if let transcription = transcription {
-                        print("Transcription:", transcription)
-                    }
-                    else{
-                        print("Transcription is nil.")
-                    }
-                }
-            }) {
-                Text("Transcribe")
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
-            }
-            
-            Button(action: {
-                Task{
-                    print(transcription!)
-                    await Summarize(transcription!)
-                }
-            }) {
-                Text("Summarize")
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
-            }
-            .padding(.top, 20)
-           
-        }
-        .padding()
-        .preferredColorScheme(.dark)
-        .onAppear {
-            requestMicrophonePermission()
         }
     }
-    
-    enum APIKey {
-      // Fetch the API key from `GenerativeAI-Info.plist`
-      static var `default`: String {
-        guard let filePath = Bundle.main.path(forResource: "GenerativeAI-Info", ofType: "plist")
-        else {
-          fatalError("Couldn't find file 'GenerativeAI-Info.plist'.")
-        }
-        let plist = NSDictionary(contentsOfFile: filePath)
-        guard let value = plist?.object(forKey: "API_KEY") as? String else {
-          fatalError("Couldn't find key 'API_KEY' in 'GenerativeAI-Info.plist'.")
-        }
-        if value.starts(with: "_") {
-          fatalError(
-            "Follow the instructions at https://ai.google.dev/tutorials/setup to get an API key."
-          )
-        }
-       
-        return value
-      }
-    }
+
 
 
     private func startRecording() {
         do {
-            /*
-            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let fileName = url.appendingPathComponent("my\(audios.count + 1)RCD.m4a")
-            let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 12000,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-            ]*/
-           
             recorder.recordName = "music"
-            recorder.record()
+            try recorder.record()
             recordStop = "Stop"
-            scaleBigCircle = 1.2
-            scaleMediumCircle = 1.2
-            scaleSmallCircle = 1.2
+            scaleBigCircle = 1
+            scaleMediumCircle = 1
+            scaleSmallCircle = 1
             isRunning = true
+        } catch {
+            print("Error starting recording: \(error.localizedDescription)")
         }
     }
 
     private func stopRecording() {
         recordStop = "Record"
-        scaleBigCircle = 1.2
-        scaleMediumCircle = 1.2
-        scaleSmallCircle = 1.2
+        scaleBigCircle = 1
+        scaleMediumCircle = 1
+        scaleSmallCircle = 1
         isRunning = false
         recorder.stop()
         getAudios()
     }
 
     private func playLastRecording() {
-        recorder.play()
-        recorder.play(name:"music") // Recorded name
+        do {
+            try recorder.play()
+            recorder.play(name: "music") // Recorded name
+        } catch {
+            print("Error playing recording: \(error.localizedDescription)")
+        }
     }
 
-    private func timeString(time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        let milliseconds = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
-        return String(format: "%02d.%02d:%02d", minutes, seconds, milliseconds)
+    private func requestMicrophonePermission() {
+        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+            if granted {
+                print("User has been granted access")
+            } else {
+                print("User has not been granted access")
+            }
+        }
     }
-   
+
     private func getAudios() {
         do {
             let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -437,85 +394,29 @@ struct ContentView: View {
                 audios.append(i)
             }
         } catch {
-            print(error.localizedDescription)
+            print("Error getting audios: \(error.localizedDescription)")
         }
     }
-    private func requestTranscribePermission(){
-        SFSpeechRecognizer.requestAuthorization{ authStatus in DispatchQueue.main.async{
-            if authStatus == .authorized
-            {
-                print("Transcription Ready TO Go")
-            }
-            else{
-                print("Transcription permission was declined.")
-            }
-        }}
-    }
-    
-    private func getDir() -> URL {
-        
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        
-        return paths.first!
-    }
-    
-    private func transcribeFile(name:String, completion: @escaping (String?)-> Void){
-           let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
-           let speechRecognizer = SFSpeechRecognizer()
-           let request = SFSpeechURLRecognitionRequest(url: bundle)
-           
-           speechRecognizer?.recognitionTask(with: request){
-               (result, error) in
-               guard let result = result
-               else{
-                   print("ERROR! \(String(describing: error))")
-                   return
-               }
-               if result.isFinal {
-                   print(result.bestTranscription.formattedString)
-                   transcription = result.bestTranscription.formattedString
-                   //return result.bestTranscription.formattedString
-               }
-           }
-       }
-    
-    private func requestMicrophonePermission() {
-        
-        AVAudioSession.sharedInstance().requestRecordPermission { granted in
-            if granted {
-               
-                
-                
-                // The user granted access. Present recording interface.
-            } else {
-                
-                // Display a SwiftUI view containing the message
-                
-                // Present message to user indicating that recording
-                // can't be performed until they change their preference
-                // under Settings -> Privacy -> Microphone
-                
-            }
+    private func timeString(time: TimeInterval) -> String {
+            let minutes = Int(time) / 60
+            let seconds = Int(time) % 60
+            let milliseconds = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
+            return String(format: "%02d.%02d:%02d", minutes, seconds, milliseconds)
         }
-        
-    }
- 
-        
-    private func Summarize(_ summarize:String) async{
-        
-        let model = GenerativeModel(name: "gemini-pro", apiKey: APIKey.default)
-        let prompt = "Give me a simple summary in note taking format of the following " + summarize
-        
-        do{
-            let response = try await model.generateContent(prompt)
-            if let text = response.text {
-              print(text)
-            }
-        }
-        catch{
-            print("Error",error)
-        }
-        
-     
-    }
 }
+
+struct SecondView: View {
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea() // Background color
+            Text("Hello, world!").foregroundColor(Color.white) // Foreground content
+              }
+    
+      
+    }
+    
+    
+}
+
+
+
