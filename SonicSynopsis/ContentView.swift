@@ -244,48 +244,49 @@ struct ContentView: View {
     @State private var scaleSmallCircle = 0.5
     @State private var audios: [URL] = []
     @State private var audioPlayer: AVAudioPlayer?
+    @State private var recording = false
     var recorder = KAudioRecorder.shared
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         NavigationView {
             VStack {
-              
-                           Spacer()
+                Spacer()
                            Text("Audio Recorder")
                                .font(.title)
                                .foregroundColor(.white)
-                           Spacer(minLength: 45)
+                           Spacer(minLength: 50)
+                          
+                /*
                            List(audios, id: \.self) { audio in
                                Text(audio.lastPathComponent)
-                           }
+                           }*/
+                           
                            Text("\(timeString(time: timeElapsed))")
                                .font(.system(size: 75))
                                .fontWeight(.light)
                                .padding()
                                .foregroundColor(.white)
-
+                           
                            Spacer(minLength: 120)
-                        
+                            
                            ZStack {
+                               
                                Circle()
-                                   .frame(width: 250, height: 250, alignment: .center)
-                                   .scaleEffect(CGFloat(scaleBigCircle))
-                                   .foregroundColor(Color(.systemGray6))
-                                   .animation(Animation.easeOut(duration: 1).repeatForever(autoreverses: true))
-                                   .offset(y: -120)
-                               Circle()
-                                   .frame(width: 200, height: 200, alignment: .center)
-                                   .scaleEffect(CGFloat(scaleMediumCircle))
-                                   .foregroundColor(Color(.systemGray4))
-                                   .animation(Animation.easeInOut(duration: 1).repeatForever(autoreverses: true))
-                                   .offset(y: -120)
-                               Circle()
-                                   .frame(width: 150, height: 150, alignment: .center)
-                                   .scaleEffect(CGFloat(scaleSmallCircle))
-                                   .foregroundColor(Color(.systemGray4))
-                                   .animation(Animation.easeInOut(duration: 1).repeatForever(autoreverses: true))
-                                   .offset(y: -120)
+                                              .stroke(lineWidth: recording ? 4 : 0)
+                                         
+                                              .animation(.spring(), value: recording)
+                                              .frame(width: 240, height: 240)
+                                              .foregroundStyle(Color(.systemGray6))
+                                              .scaleEffect(recording ? 1 : 0.5)
+                                              .animation(.interactiveSpring(response: 0.15, dampingFraction: 0.86, blendDuration: 0.25).repeatForever(autoreverses: false), value: recording)
+                                          
+                                          // Middle
+                                          Circle()
+                                              .frame(width: 160, height: 160)
+                                              .foregroundStyle(Color(.systemGray))
+                                              .scaleEffect(recording ? 1 : 0.5)
+                                              .opacity(recording ? 0.6 : 0)
                                Circle()
                                    .frame(width: 100, height: 100, alignment: .center)
                                    .foregroundColor(Color(.systemIndigo))
@@ -321,23 +322,31 @@ struct ContentView: View {
                                    .background(Color(red: 0.69, green: 0.61, blue: 0.85))
                                    .cornerRadius(10)
                            }
-                           .padding(.bottom, 10) // Adjust bottom padding to move the button closer
+                           .padding(.top, -100) // Adjust bottom padding to move the button closer
                                            
                             Spacer(minLength: 20)
                
                            
-                NavigationLink(destination: SecondView()) {
+                NavigationLink(destination: ManageRecordingsView()) {
                     Text("Manage Recordings")
                 }
+                .padding(.top, -50) 
             }
             
-            .navigationBarTitle("Audio Recorder")
-            .background(Color.black.edgesIgnoringSafeArea(.all))
+            
             .onAppear {
                 requestMicrophonePermission()
                 getAudios()
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.825, blendDuration: 0).repeatForever(autoreverses: true)) {
+                    recording.toggle()
+                }
             }
+            
+               
+            
+            .preferredColorScheme(.dark)
         }
+      
     }
 
 
@@ -345,14 +354,12 @@ struct ContentView: View {
     private func startRecording() {
         do {
             recorder.recordName = "music"
-            try recorder.record()
+            recorder.record()
             recordStop = "Stop"
             scaleBigCircle = 1
             scaleMediumCircle = 1
             scaleSmallCircle = 1
             isRunning = true
-        } catch {
-            print("Error starting recording: \(error.localizedDescription)")
         }
     }
 
@@ -368,10 +375,8 @@ struct ContentView: View {
 
     private func playLastRecording() {
         do {
-            try recorder.play()
+            recorder.play()
             recorder.play(name: "music") // Recorded name
-        } catch {
-            print("Error playing recording: \(error.localizedDescription)")
         }
     }
 
@@ -405,18 +410,6 @@ struct ContentView: View {
         }
 }
 
-struct SecondView: View {
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea() // Background color
-            Text("Hello, world!").foregroundColor(Color.white) // Foreground content
-              }
-    
-      
-    }
-    
-    
-}
 
 
 

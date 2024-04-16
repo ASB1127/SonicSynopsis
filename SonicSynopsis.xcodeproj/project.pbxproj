@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FA3D1A522BCF21C10014896B /* ManageRecordingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3D1A512BCF21C10014896B /* ManageRecordingsView.swift */; };
 		FAA960582BAD2402001E62A8 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = FAA960572BAD2402001E62A8 /* GoogleGenerativeAI */; };
 		FAA9605A2BAD2515001E62A8 /* GenerativeAI-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FAA960592BAD2515001E62A8 /* GenerativeAI-Info.plist */; };
 		FAA9605D2BADA43E001E62A8 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = FAA9605C2BADA43E001E62A8 /* Algorithms */; };
@@ -17,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FA3D1A512BCF21C10014896B /* ManageRecordingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageRecordingsView.swift; sourceTree = "<group>"; };
 		FAA960592BAD2515001E62A8 /* GenerativeAI-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GenerativeAI-Info.plist"; sourceTree = "<group>"; };
 		FAFEE9A02B9FD10000B8A7A6 /* SonicSynopsis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SonicSynopsis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAFEE9A32B9FD10000B8A7A6 /* SonicSynopsisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonicSynopsisApp.swift; sourceTree = "<group>"; };
@@ -62,6 +64,7 @@
 				FAFEE9B22BA051D800B8A7A6 /* Info.plist */,
 				FAFEE9A32B9FD10000B8A7A6 /* SonicSynopsisApp.swift */,
 				FAFEE9A52B9FD10000B8A7A6 /* ContentView.swift */,
+				FA3D1A512BCF21C10014896B /* ManageRecordingsView.swift */,
 				FAFEE9A72B9FD10300B8A7A6 /* Assets.xcassets */,
 				FAFEE9A92B9FD10300B8A7A6 /* Preview Content */,
 			);
@@ -155,6 +158,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA3D1A522BCF21C10014896B /* ManageRecordingsView.swift in Sources */,
 				FAFEE9A62B9FD10000B8A7A6 /* ContentView.swift in Sources */,
 				FAFEE9A42B9FD10000B8A7A6 /* SonicSynopsisApp.swift in Sources */,
 			);
