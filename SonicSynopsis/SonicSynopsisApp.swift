@@ -12,6 +12,7 @@ struct SonicSynopsisApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(Router.shared)
         }
     }
 }

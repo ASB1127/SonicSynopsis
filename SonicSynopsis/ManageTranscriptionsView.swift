@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ManageRecordingsView: View {
+struct ManageTranscriptionsView: View {
     var body: some View {
        
         ZStack {
@@ -20,5 +20,5 @@ struct ManageRecordingsView: View {
 }
 
 #Preview {
-    ManageRecordingsView()
+    ManageTranscriptionsView()
 }
