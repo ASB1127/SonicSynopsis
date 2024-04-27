@@ -13,7 +13,6 @@ class KAudioRecorder: NSObject {
 
     
     static var shared = KAudioRecorder()
-    
     private var audioSession:AVAudioSession = AVAudioSession.sharedInstance()
     private var audioRecorder:AVAudioRecorder!
     private var audioPlayer:AVAudioPlayer = AVAudioPlayer()
@@ -34,8 +33,21 @@ class KAudioRecorder: NSObject {
     
     private func recordSetup() {
         
-        let newVideoName = getDir().appendingPathComponent(recordName?.appending(".m4a") ?? "sound.m4a")
-        
+        var cnt = 0
+        if let fileName = getMostRecentRecordingFileName(){
+            var numericString = String(fileName.filter { $0.isNumber })
+            print(fileName)
+            if let numericValue = Int(numericString) {
+                cnt = numericValue + 1
+            }
+        }
+      
+        print("cnt: ",cnt)
+        let newFileName = (recordName ?? "sound") + "_\(cnt).rec"
+        print(newFileName)
+        let newVideoName = getDir().appendingPathComponent(newFileName)
+      
+
         do {
             
             try audioSession.setCategory(AVAudioSession.Category.playAndRecord, options: .defaultToSpeaker)
@@ -124,7 +136,7 @@ class KAudioRecorder: NSObject {
     
     func play(name:String) {
         
-        let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
+        let bundle = getDir().appendingPathComponent(name)
         
         if FileManager.default.fileExists(atPath: bundle.path) && !isRecording && !isPlaying {
             
@@ -202,7 +214,29 @@ class KAudioRecorder: NSObject {
         return result
     }
     
-}//
+    func getMostRecentRecordingFileName() -> String? {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        
+        do {
+            let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
+            let audioFiles = fileURLs.filter { $0.pathExtension == "rec" } // Filter only audio files
+            let sortedFiles = audioFiles.sorted { $0.lastPathComponent < $1.lastPathComponent } // Sort files by name
+            
+            if let mostRecentFile = sortedFiles.last {
+                return mostRecentFile.lastPathComponent // Return the name of the most recent file
+            }
+        } catch {
+            print("Error getting file names:", error.localizedDescription)
+        }
+        
+        return nil // Return nil if there are no recordings
+    }
+
+    
+}
+
+
 
 extension KAudioRecorder: AVAudioRecorderDelegate {
     
@@ -281,16 +315,23 @@ struct ContentView: View {
                     List {
                         ForEach(audios, id: \.self) { audio in
                             Text(audio.lastPathComponent)
-                                .onTapGesture {
-                                    if let index = audios.firstIndex(of: audio) {
-                                        play(at: IndexSet(integer: index))
-                                    }
-                                }
+                               
                                 .swipeActions(allowsFullSwipe: false) {
                                     Button {
-                                        print("Muting conversation")
+                                        guard let index = audios.firstIndex(of: audio) else { return }
+                                        let audioURL = audios[index]
+                                        requestTranscribePermission()
+                                        transcribeFile(audioURL:audioURL ){ transcription in
+                                        if let transcription = transcription {
+                                        print("Transcription:", transcription)
+                                        }
+                                        else{
+                                        print("Transcription is nil.")
+                                        }
+                                        }
+                                        
                                     } label: {
-                                        Label("Mute", systemImage: "bell.slash.fill")
+                                        Label("Transcribe", systemImage: "waveform.path.ecg")
                                     }
                                     .tint(.indigo)
                                     
@@ -305,7 +346,15 @@ struct ContentView: View {
                                     } label: {
                                         Label("Delete", systemImage: "trash.fill")
                                     }
-                                }
+                                    Button(action: {
+                                                    guard let index = audios.firstIndex(of: audio) else { return }
+                                                    play(at: IndexSet(integer: index))
+                                                }) {
+                                                    Label("Play", systemImage: "play.circle")
+                                                }
+                                            }
+                                
+                          
                             
                         }
                         .onDelete { indexSet in
@@ -361,50 +410,6 @@ struct ContentView: View {
                      }
                      
                      
-                     
-                     
-                     Button(action: {
-                     playLastRecording()
-                     }) {
-                     Text("Play Last Recording")
-                     .foregroundColor(.white)
-                     .padding()
-                     .background(Color(red: 0.69, green: 0.61, blue: 0.85))
-                     .cornerRadius(10)
-                     }
-                     
-                     Button(action: {
-                     requestTranscribePermission()
-                     transcribeFile(name: "music"){ transcription in
-                     if let transcription = transcription {
-                     print("Transcription:", transcription)
-                     }
-                     else{
-                     print("Transcription is nil.")
-                     }
-                     }
-                     }) {
-                     Text("Transcribe")
-                     .foregroundColor(.white)
-                     .padding()
-                     .background(Color.blue)
-                     .cornerRadius(10)
-                     }
-                     
-                     Button(action: {
-                     Task{
-                     print(transcription!)
-                     await Summarize(transcription!)
-                     }
-                     }) {
-                     Text("Summarize")
-                     .foregroundColor(.white)
-                     .padding()
-                     .background(Color.blue)
-                     .cornerRadius(10)
-                     }
-                     
-                     .padding(.top, -60) // Adjust bottom padding to move the button closer
                      
                      Spacer(minLength: 20)
                      
@@ -504,13 +509,7 @@ struct ContentView: View {
                      getAudios()
                      }
                      
-                     private func playLastRecording() {
-                     do {
-                     recorder.play()
-                     recorder.play(name: "music") // Recorded name
-                     }
-                     }
-                     
+                   
                      private func requestMicrophonePermission() {
                      AVAudioSession.sharedInstance().requestRecordPermission { granted in
                      if granted {
@@ -563,16 +562,17 @@ struct ContentView: View {
                      
                      return paths.first!
                      }
-                     private func transcribeFile(name:String, completion: @escaping (String?)-> Void){
-                     let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
+    private func transcribeFile(audioURL: URL,  completion: @escaping (String?)-> Void){
+                         //let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
                      let speechRecognizer = SFSpeechRecognizer()
-                     let request = SFSpeechURLRecognitionRequest(url: bundle)
+                     let request = SFSpeechURLRecognitionRequest(url: audioURL)
                      
                      speechRecognizer?.recognitionTask(with: request){
                      (result, error) in
                      guard let result = result
                      else{
                      print("ERROR! \(String(describing: error))")
+                     
                      return
                      }
                      if result.isFinal {
