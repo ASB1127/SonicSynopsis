@@ -220,19 +220,30 @@ class KAudioRecorder: NSObject {
         
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
-            let audioFiles = fileURLs.filter { $0.pathExtension == "rec" } // Filter only audio files
-            let sortedFiles = audioFiles.sorted { $0.lastPathComponent < $1.lastPathComponent } // Sort files by name
+            let audioFiles = fileURLs.filter { $0.pathExtension == "rec" }
+            let sortedFiles = audioFiles.sorted { $0.lastPathComponent < $1.lastPathComponent }
             
             if let mostRecentFile = sortedFiles.last {
-                return mostRecentFile.lastPathComponent // Return the name of the most recent file
+                return mostRecentFile.lastPathComponent
             }
         } catch {
             print("Error getting file names:", error.localizedDescription)
         }
         
-        return nil // Return nil if there are no recordings
+        return nil
     }
-
+    
+    func changeRecordingFileName(oldName: String,newName: String){
+        let oldURL = getDir().appendingPathComponent(oldName)
+        let newURL = getDir().appendingPathComponent(newName)
+        let manager = FileManager.default
+        do {
+                try manager.moveItem(at: oldURL, to: newURL)
+                print("File renamed successfully.")
+            } catch {
+                print("Error renaming file:", error.localizedDescription)
+            }
+    }
     
 }
 
@@ -265,6 +276,10 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
 }
 
 
+
+
+
+
     
 
     
@@ -281,9 +296,14 @@ struct ContentView: View {
     @State private var audios: [URL] = []
     @State private var audioPlayer: AVAudioPlayer?
     @State private var recording = false
+    @State private var newName: String = ""
+    @State private var isEditingName = false
+    @State private var selectedAudioIndex: Int?
+    @State private var editedAudioNames: [String] = []
     var recorder = KAudioRecorder.shared
     @EnvironmentObject var router: Router
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    
     func delete(at offsets: IndexSet) {
         for index in offsets {
             let audioURL = audios[index]
@@ -314,8 +334,21 @@ struct ContentView: View {
                     
                     List {
                         ForEach(audios, id: \.self) { audio in
-                            Text(audio.lastPathComponent)
-                               
+                          
+                            TextField("Enter name", text: Binding(
+                                get: {
+                                    if let index = audios.firstIndex(of: audio), index < editedAudioNames.count {
+                                        return editedAudioNames[index]
+                                    } else {
+                                        return ""
+                                    }
+                                },
+                                set: { newName in
+                                    if let index = audios.firstIndex(of: audio), index < editedAudioNames.count {
+                                        editedAudioNames[index] = newName
+                                    }
+                                }
+                            ))
                                 .swipeActions(allowsFullSwipe: false) {
                                     Button {
                                         guard let index = audios.firstIndex(of: audio) else { return }
@@ -352,8 +385,10 @@ struct ContentView: View {
                                                 }) {
                                                     Label("Play", systemImage: "play.circle")
                                                 }
+                                                
+                                                
                                             }
-                                
+                               
                           
                             
                         }
@@ -366,13 +401,18 @@ struct ContentView: View {
                                 recorder.delete(name: audioName)
                             }
                         }
+                        .onAppear {
+                               editedAudioNames = audios.map { $0.lastPathComponent }
+                           }
+                        
+                      
                         
                         
                         
                         
                         
                     }
-                    
+                
                     
                      Spacer(minLength: 80)
                      Text("\(timeString(time: timeElapsed))")
