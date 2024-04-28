@@ -300,6 +300,7 @@ struct ContentView: View {
     @State private var isEditingName = false
     @State private var selectedAudioIndex: Int?
     @State private var editedAudioNames: [String] = []
+    var oldName = ""
     var recorder = KAudioRecorder.shared
     @EnvironmentObject var router: Router
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
@@ -336,8 +337,10 @@ struct ContentView: View {
                         ForEach(audios, id: \.self) { audio in
                           
                             TextField("Enter name", text: Binding(
+                          
                                 get: {
                                     if let index = audios.firstIndex(of: audio), index < editedAudioNames.count {
+                                      
                                         return editedAudioNames[index]
                                     } else {
                                         return ""
@@ -345,7 +348,9 @@ struct ContentView: View {
                                 },
                                 set: { newName in
                                     if let index = audios.firstIndex(of: audio), index < editedAudioNames.count {
+                                        recorder.changeRecordingFileName(oldName: editedAudioNames[index], newName: newName)
                                         editedAudioNames[index] = newName
+                                       
                                     }
                                 }
                             ))
