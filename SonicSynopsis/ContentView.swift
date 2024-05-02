@@ -34,17 +34,26 @@ class KAudioRecorder: NSObject {
     private func recordSetup() {
         
         var cnt = 0
+        print(getMostRecentRecordingFileName())
         if let fileName = getMostRecentRecordingFileName(){
-            var numericString = String(fileName.filter { $0.isNumber })
-            print(fileName)
-            if let numericValue = Int(numericString) {
-                cnt = numericValue + 1
+            print("fileName = ",fileName)
+            let regex = try! NSRegularExpression(pattern: "\\d+(?=\\.)")
+            if let match = regex.firstMatch(in: fileName, range: NSRange(fileName.startIndex..., in: fileName)) {
+                let digits = String(fileName[Range(match.range, in: fileName)!])
+                print("digits= ",digits)
+                print("\nclass = KAudioRecorder\n func = recordSetup()\n digits: ",digits)
+                cnt=Int(digits) ?? 0
+                cnt+=1
+            }
+            else{
+                print("regex failed")
             }
         }
+
       
-        print("cnt: ",cnt)
-        let newFileName = (recordName ?? "sound") + "_\(cnt).rec"
-        print(newFileName)
+        print("\nclass = KAudioRecorder\n func = recordSetup()\n cnt: ",cnt)
+        let newFileName = (recordName ?? "sound") + "_\(cnt).m4a"
+        print("\nclass = KAudioRecorder\n func = recordSetup()\n newFileName = ",newFileName)
         let newVideoName = getDir().appendingPathComponent(newFileName)
       
 
@@ -217,13 +226,16 @@ class KAudioRecorder: NSObject {
     func getMostRecentRecordingFileName() -> String? {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+       
         
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
-            let audioFiles = fileURLs.filter { $0.pathExtension == "rec" }
+            
+            let audioFiles = fileURLs.filter { $0.pathExtension == "m4a" }
             let sortedFiles = audioFiles.sorted { $0.lastPathComponent < $1.lastPathComponent }
             
             if let mostRecentFile = sortedFiles.last {
+                print("\nclass = KAudioRecorder\nfunc = getMostRecentRecordingFileName()\nmostRecentFile.lastPathComponent= ",mostRecentFile.lastPathComponent)
                 return mostRecentFile.lastPathComponent
             }
         } catch {
@@ -235,7 +247,9 @@ class KAudioRecorder: NSObject {
     
     func changeRecordingFileName(oldName: String,newName: String){
         let oldURL = getDir().appendingPathComponent(oldName)
+        print("newNames = ",newName)
         let newURL = getDir().appendingPathComponent(newName)
+        print("newURL = ",newURL)
         let manager = FileManager.default
         do {
                 try manager.moveItem(at: oldURL, to: newURL)
@@ -276,6 +290,9 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
 }
 
 
+class NewNames: ObservableObject {
+    @Published var newNames:[String] = []
+}
 
 
 
@@ -290,16 +307,19 @@ struct ContentView: View {
     @State private var alert = false
     @State private var timeElapsed: TimeInterval = 0
     @State private var isRunning = false
-    @State private var scaleBigCircle = 0.5
-    @State private var scaleMediumCircle = 0.5
-    @State private var scaleSmallCircle = 0.5
+  
     @State private var audios: [URL] = []
     @State private var audioPlayer: AVAudioPlayer?
     @State private var recording = false
     @State private var newName: String = ""
     @State private var isEditingName = false
     @State private var selectedAudioIndex: Int?
-    @State private var editedAudioNames: [String] = []
+//    @State private var newNames: [String] = []
+    @State private var fileNames: [String] = []
+    
+    @State var selectedIndex: Int = 0
+   
+    
     var oldName = ""
     var recorder = KAudioRecorder.shared
     @EnvironmentObject var router: Router
@@ -322,6 +342,7 @@ struct ContentView: View {
         }
     }
     var body: some View {
+
         
         TabView(selection: $router.selectedTab){
             NavigationView{
@@ -330,51 +351,70 @@ struct ContentView: View {
                     Text("Audio Recorder")
                         .font(.title)
                         .foregroundColor(.white)
-                    
-                    
-                    
-                    List {
-                        ForEach(audios, id: \.self) { audio in
-                          
-                            TextField("Enter name", text: Binding(
-                          
-                                get: {
-                                    if let index = audios.firstIndex(of: audio), index < editedAudioNames.count {
-                                      
-                                        return editedAudioNames[index]
+                    List  {
+                        
+                        ForEach(audios.indices, id: \.self) { index in
+                            //Text(audios[index].lastPathComponent)
+                            HStack{
+                                
+                                Group {
+                                    
+                                    if index == selectedIndex {
+                                        
+                                        Text(audios[index].lastPathComponent)
+                                            .background(.red)
+                                        Spacer()
+                                        
                                     } else {
-                                        return ""
-                                    }
-                                },
-                                set: { newName in
-                                    if let index = audios.firstIndex(of: audio), index < editedAudioNames.count {
-                                        recorder.changeRecordingFileName(oldName: editedAudioNames[index], newName: newName)
-                                        editedAudioNames[index] = newName
-                                       
+                                        Text(audios[index].lastPathComponent)
+                                        Spacer()
                                     }
                                 }
-                            ))
+                            
+                            }
+                           
+                            .contentShape(Rectangle())
+                            .frame(maxWidth: .infinity)
+                            .onTapGesture {
+                             
+                                selectedIndex = index
+                                EditFileNamesView()
+                            }
+                            
+                           
+                            
+                        
+//                            TextField("Enter name", text: $newNames[index])
+//                                .onSubmit {
+//                                    print("audios[index] = ",audios[index])
+//                                    print("newNames[index] = ", newNames[index])
+//                                    let newName = "\(newNames[index]).m4a"
+//                                    print("newName = ",newName)
+//                                    let oldName = audios[index].lastPathComponent
+//                                    print("oldName = ",oldName)
+//                                    recorder.changeRecordingFileName(oldName: oldName , newName: newName)
+//
+//                                }
                                 .swipeActions(allowsFullSwipe: false) {
                                     Button {
-                                        guard let index = audios.firstIndex(of: audio) else { return }
                                         let audioURL = audios[index]
                                         requestTranscribePermission()
-                                        transcribeFile(audioURL:audioURL ){ transcription in
-                                        if let transcription = transcription {
-                                        print("Transcription:", transcription)
+                                        print("audioURL = ",audioURL)
+                                        transcribeFile(audioURL: audioURL) { transcription in
+                                            if let transcription = transcription {
+                                                print("Transcription:", transcription)
+                                            } else {
+                                                print("Transcription is nil.")
+                                            }
                                         }
-                                        else{
-                                        print("Transcription is nil.")
-                                        }
-                                        }
-                                        
                                     } label: {
                                         Label("Transcribe", systemImage: "waveform.path.ecg")
                                     }
                                     .tint(.indigo)
                                     
+                                    
                                     Button(role: .destructive) {
-                                        guard let index = audios.firstIndex(of: audio) else { return }
+                                        guard let index = audios.firstIndex(of: audios[index]) else { return }
                                         let audioURL = audios[index]
                                         let audioName = audioURL.lastPathComponent
                                         print(audioName)
@@ -385,14 +425,20 @@ struct ContentView: View {
                                         Label("Delete", systemImage: "trash.fill")
                                     }
                                     Button(action: {
-                                                    guard let index = audios.firstIndex(of: audio) else { return }
+                                                    guard let index = audios.firstIndex(of: audios[index]) else { return }
                                                     play(at: IndexSet(integer: index))
                                                 }) {
                                                     Label("Play", systemImage: "play.circle")
                                                 }
+                                    
+                                   
+                                                
+                                                
+                                            
                                                 
                                                 
                                             }
+                            
                                
                           
                             
@@ -407,8 +453,12 @@ struct ContentView: View {
                             }
                         }
                         .onAppear {
-                               editedAudioNames = audios.map { $0.lastPathComponent }
+                               print("audios = ",audios)
+//                               newNames = audios.map { $0.lastPathComponent }
+//                            print("newNames = ",newNames)
+                               
                            }
+                        
                         
                       
                         
@@ -417,9 +467,15 @@ struct ContentView: View {
                         
                         
                     }
+                    Spacer()
+                    if(selectedIndex<audios.count)
+                    {
+                        Text("Selected audio: \(audios[selectedIndex].lastPathComponent)")
+                    }
                 
-                    
-                     Spacer(minLength: 80)
+                   
+                     
+                    Spacer(minLength: 80)
                      Text("\(timeString(time: timeElapsed))")
                      .font(.system(size: 75))
                      .fontWeight(.light)
@@ -537,21 +593,17 @@ struct ContentView: View {
                      recorder.recordName = "music"
                      recorder.record()
                      recordStop = "Stop"
-                     scaleBigCircle = 1
-                     scaleMediumCircle = 1
-                     scaleSmallCircle = 1
+                     
                      isRunning = true
                      }
                      }
                      
                      private func stopRecording() {
                      recordStop = "Record"
-                     scaleBigCircle = 1
-                     scaleMediumCircle = 1
-                     scaleSmallCircle = 1
                      isRunning = false
                      recorder.stop()
                      getAudios()
+                     timeElapsed = 0.0
                      }
                      
                    
