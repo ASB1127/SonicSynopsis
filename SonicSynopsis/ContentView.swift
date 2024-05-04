@@ -223,19 +223,60 @@ class KAudioRecorder: NSObject {
         return result
     }
     
+//    func getMostRecentRecordingFileName() -> String? {
+//        let fileManager = FileManager.default
+//        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+//       
+//        
+//        do {
+//            let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
+//            
+//            let audioFiles = fileURLs.filter { $0.pathExtension == "m4a" }
+//          
+//            let sortedFiles = audioFiles.sorted { $0.lastPathComponent < $1.lastPathComponent }
+//            print("sortedFiles: ",sortedFiles)
+//            if let mostRecentFile = sortedFiles.last {
+//                print("\nclass = KAudioRecorder\nfunc = getMostRecentRecordingFileName()\nmostRecentFile.lastPathComponent= ",mostRecentFile.lastPathComponent)
+//                return mostRecentFile.lastPathComponent
+//            }
+//        } catch {
+//            print("Error getting file names:", error.localizedDescription)
+//        }
+//        
+//        return nil
+//    }
+    
     func getMostRecentRecordingFileName() -> String? {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-       
         
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
             
             let audioFiles = fileURLs.filter { $0.pathExtension == "m4a" }
-            let sortedFiles = audioFiles.sorted { $0.lastPathComponent < $1.lastPathComponent }
+            
+            let sortedFiles = audioFiles.sorted { file1, file2 in
+                let components1 = file1.deletingPathExtension().lastPathComponent.components(separatedBy: CharacterSet.decimalDigits.inverted)
+                let components2 = file2.deletingPathExtension().lastPathComponent.components(separatedBy: CharacterSet.decimalDigits.inverted)
+
+                for (component1, component2) in zip(components1, components2) {
+                    if let number1 = Int(component1), let number2 = Int(component2) {
+                        if number1 != number2 {
+                            return number1 < number2
+                        }
+                    } else {
+                        if component1 != component2 {
+                            return component1 < component2
+                        }
+                    }
+                }
+
+                // If one filename has more components, it should come first
+                return components1.count < components2.count
+            }
             
             if let mostRecentFile = sortedFiles.last {
-                print("\nclass = KAudioRecorder\nfunc = getMostRecentRecordingFileName()\nmostRecentFile.lastPathComponent= ",mostRecentFile.lastPathComponent)
+                print("\nclass = KAudioRecorder\nfunc = getMostRecentRecordingFileName()\nmostRecentFile.lastPathComponent= ", mostRecentFile.lastPathComponent)
                 return mostRecentFile.lastPathComponent
             }
         } catch {
@@ -244,6 +285,8 @@ class KAudioRecorder: NSObject {
         
         return nil
     }
+
+
     
     func changeRecordingFileName(oldName: String,newName: String){
         let oldURL = getDir().appendingPathComponent(oldName)
@@ -313,17 +356,20 @@ struct ContentView: View {
     @State private var recording = false
     @State private var newName: String = ""
     @State private var isEditingName = false
-    @State private var selectedAudioIndex: Int?
+//    @State private var selectedAudioIndex: Int?
 //    @State private var newNames: [String] = []
     @State private var fileNames: [String] = []
+    //@State private var selectedItem: Int?
     
     @State var selectedIndex: Int = 0
    
+    
     
     var oldName = ""
     var recorder = KAudioRecorder.shared
     @EnvironmentObject var router: Router
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    
     
     func delete(at offsets: IndexSet) {
         for index in offsets {
@@ -351,9 +397,10 @@ struct ContentView: View {
                     Text("Audio Recorder")
                         .font(.title)
                         .foregroundColor(.white)
+                    
                     List  {
-                        
-                        ForEach(audios.indices, id: \.self) { index in
+                        var m4aAudios = audios.filter { $0.pathExtension == "m4a" }
+                        ForEach(m4aAudios.indices, id: \.self) { index in
                             //Text(audios[index].lastPathComponent)
                             HStack{
                                 
@@ -361,12 +408,12 @@ struct ContentView: View {
                                     
                                     if index == selectedIndex {
                                         
-                                        Text(audios[index].lastPathComponent)
+                                        Text(m4aAudios[index].lastPathComponent)
                                             .background(.red)
                                         Spacer()
                                         
                                     } else {
-                                        Text(audios[index].lastPathComponent)
+                                        Text(m4aAudios[index].lastPathComponent)
                                         Spacer()
                                     }
                                 }
@@ -378,7 +425,7 @@ struct ContentView: View {
                             .onTapGesture {
                              
                                 selectedIndex = index
-                                EditFileNamesView()
+                               // EditFileNamesView()
                             }
                             
                            
@@ -397,12 +444,22 @@ struct ContentView: View {
 //                                }
                                 .swipeActions(allowsFullSwipe: false) {
                                     Button {
-                                        let audioURL = audios[index]
+                                        let audioURL = m4aAudios[index]
                                         requestTranscribePermission()
-                                        print("audioURL = ",audioURL)
                                         transcribeFile(audioURL: audioURL) { transcription in
+                                           
                                             if let transcription = transcription {
-                                                print("Transcription:", transcription)
+                                               print("Transcription:", transcription)
+                                               
+                                                let recentFileName = getTranscriptionFileName()
+                                                let numbers = recentFileName.components(separatedBy: CharacterSet.decimalDigits.inverted)
+                                                                            .joined()
+                                                print("numbers: ",numbers)
+                                                var cnt = Int(numbers) ?? 0
+                                                cnt += 1
+                                                let fileName = "transcription\(cnt).txt"
+                                                saveTranscriptionToFile(transcription: transcription, fileName: fileName)
+                                            
                                             } else {
                                                 print("Transcription is nil.")
                                             }
@@ -414,18 +471,18 @@ struct ContentView: View {
                                     
                                     
                                     Button(role: .destructive) {
-                                        guard let index = audios.firstIndex(of: audios[index]) else { return }
-                                        let audioURL = audios[index]
+                                        guard let index = m4aAudios.firstIndex(of: audios[index]) else { return }
+                                        let audioURL = m4aAudios[index]
                                         let audioName = audioURL.lastPathComponent
                                         print(audioName)
-                                        audios.remove(at: index)
+                                        m4aAudios.remove(at: index)
                                         recorder.delete(name: audioName)
                                         
                                     } label: {
                                         Label("Delete", systemImage: "trash.fill")
                                     }
                                     Button(action: {
-                                                    guard let index = audios.firstIndex(of: audios[index]) else { return }
+                                                    guard let index = m4aAudios.firstIndex(of: m4aAudios[index]) else { return }
                                                     play(at: IndexSet(integer: index))
                                                 }) {
                                                     Label("Play", systemImage: "play.circle")
@@ -445,21 +502,31 @@ struct ContentView: View {
                         }
                         .onDelete { indexSet in
                             for index in indexSet {
-                                let audioURL = audios[index]
+                                let audioURL = m4aAudios[index]
                                 let audioName = audioURL.lastPathComponent
                                 print(audioName)
                                 audios.remove(at: index)
                                 recorder.delete(name: audioName)
                             }
                         }
-                        .onAppear {
-                               print("audios = ",audios)
-//                               newNames = audios.map { $0.lastPathComponent }
-//                            print("newNames = ",newNames)
-                               
-                           }
+//                        .sheet(isPresented: $isEditingName) {
+//                            EditFileNamesView()
+//                                .textField("Enter your name", text: $newName)
+//                                .keyboardType(.default)
+//                                .presentationDetents([.medium, .large])
+//                        }
+//                        .onTapGesture {
+//                            isEditingName = true
+//                        }
+
+//                        .sheet(item: $selectedIndex) { item in
+//                                    EditFileNamesView()
+//                            TextField("Enter your name",text: $newName)
+//                                           .keyboardType(/*@START_MENU_TOKEN@*/.default/*@END_MENU_TOKEN@*/)
+//                                           .presentationDetents([.medium,.large])
+//                                }
                         
-                        
+//                        $selectedIndex
                       
                         
                         
@@ -660,25 +727,32 @@ struct ContentView: View {
                      return paths.first!
                      }
     private func transcribeFile(audioURL: URL,  completion: @escaping (String?)-> Void){
-                         //let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
-                     let speechRecognizer = SFSpeechRecognizer()
-                     let request = SFSpeechURLRecognitionRequest(url: audioURL)
-                     
-                     speechRecognizer?.recognitionTask(with: request){
-                     (result, error) in
-                     guard let result = result
-                     else{
-                     print("ERROR! \(String(describing: error))")
-                     
-                     return
-                     }
-                     if result.isFinal {
-                     print(result.bestTranscription.formattedString)
-                     transcription = result.bestTranscription.formattedString
-                     //return result.bestTranscription.formattedString
-                     }
-                     }
-                     }
+        //let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
+        let speechRecognizer = SFSpeechRecognizer()
+        let request = SFSpeechURLRecognitionRequest(url: audioURL)
+        
+        speechRecognizer?.recognitionTask(with: request){
+            (result, error) in
+            
+            print("Recognition task closure entered")
+            
+            guard let result = result
+            else{
+                print("ERROR! \(String(describing: error))")
+                
+                return
+            }
+            if result.isFinal {
+                // print(result.bestTranscription.formattedString)
+                transcription = result.bestTranscription.formattedString
+                //print("Transcription is final:", transcription ?? "")
+                completion(transcription)
+                //return result.bestTranscription.formattedString
+            }
+            
+        }
+        
+}
                      private func requestTranscribePermission(){
                          SFSpeechRecognizer.requestAuthorization{ authStatus in DispatchQueue.main.async{
                              if authStatus == .authorized
@@ -691,7 +765,57 @@ struct ContentView: View {
                          }
                          }
                      }
-                     
+    private func saveTranscriptionToFile(transcription: String, fileName:String){
+        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsDirectory.appendingPathComponent(fileName)
+        do {
+                try transcription.write(to: fileURL, atomically: true, encoding: .utf8)
+                print("Transcription saved to:", fileURL)
+            } catch {
+                print("Error saving transcription:", error.localizedDescription)
+            }
+    }
+    private func getTranscriptionFileName() ->String
+    {
+
+        let fileManager = FileManager.default
+        do {
+                    let documentsURL = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+                    let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
+                    
+                    // Filter out files and keep only those with ".txt" extension
+                    let textFileURLs = fileURLs.filter { $0.pathExtension == "txt" }
+                    
+                    // Sort files by creation date, latest first
+                    let sortedTextFileURLs = textFileURLs.sorted {
+                        (url1, url2) -> Bool in
+                        do {
+                            let attributes1 = try fileManager.attributesOfItem(atPath: url1.path)
+                            let attributes2 = try fileManager.attributesOfItem(atPath: url2.path)
+                            if let creationDate1 = attributes1[.creationDate] as? Date,
+                               let creationDate2 = attributes2[.creationDate] as? Date {
+                                return creationDate1 > creationDate2
+                            }
+                        } catch {
+                            print("Error sorting files:", error.localizedDescription)
+                        }
+                        return false
+                    }
+                    
+            if let mostRecentFileURL = sortedTextFileURLs.first {
+                // Get the filename of the most recent file
+                let mostRecentFileName = mostRecentFileURL.lastPathComponent
+                print(mostRecentFileName)
+                return mostRecentFileName
+            } else {
+                        print("No transcription files found.")
+                    }
+                } catch {
+                    print("Error loading files from document directory:", error.localizedDescription)
+                }
+        return ""
+    }
+                   
                      
                      }
                  
