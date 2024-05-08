@@ -289,7 +289,12 @@ class KAudioRecorder: NSObject {
 
     
     func changeRecordingFileName(oldName: String,newName: String){
+        guard oldName != newName else {
+               print("New name is the same as the old name. No renaming needed.")
+               return
+           }
         let oldURL = getDir().appendingPathComponent(oldName)
+        print("oldName = ",oldName)
         print("newNames = ",newName)
         let newURL = getDir().appendingPathComponent(newName)
         print("newURL = ",newURL)
@@ -333,12 +338,13 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
 }
 
 
-class NewNames: ObservableObject {
-    @Published var newNames:[String] = []
+
+
+struct Audio:Identifiable{
+    let id = UUID()
+    let index:Int
+    var name:String
 }
-
-
-
 
     
 
@@ -360,10 +366,17 @@ struct ContentView: View {
 //    @State private var newNames: [String] = []
     @State private var fileNames: [String] = []
     //@State private var selectedItem: Int?
+    @State private var selectedIndex: Int? = nil
+    //@State var selectedIndex: Int = 0
+    @State private var audioNames: [Audio] = []
+    @State private var selectedAudioIndex: Int?
+    @State private var selectedItem: Audio? = nil
     
-    @State var selectedIndex: Int = 0
-   
+    @State private var audio:Audio? = nil
     
+//    audioNames = audios.enumerated().map { index, url in
+//        Audio(index: index, name: url.lastPathComponent)
+//    }
     
     var oldName = ""
     var recorder = KAudioRecorder.shared
@@ -384,13 +397,16 @@ struct ContentView: View {
         for index in offsets {
             let audioURL = audios[index]
             let audioName = audioURL.lastPathComponent
+            
             recorder.play(name: audioName)
         }
     }
+   
     var body: some View {
 
         
         TabView(selection: $router.selectedTab){
+         
             NavigationView{
                 VStack {
                     
@@ -400,6 +416,7 @@ struct ContentView: View {
                     
                     List  {
                         var m4aAudios = audios.filter { $0.pathExtension == "m4a" }
+             
                         ForEach(m4aAudios.indices, id: \.self) { index in
                             //Text(audios[index].lastPathComponent)
                             HStack{
@@ -425,6 +442,10 @@ struct ContentView: View {
                             .onTapGesture {
                              
                                 selectedIndex = index
+                                selectedAudioIndex = index
+                                selectedItem = Audio(index: index, name: m4aAudios[index].lastPathComponent)
+                                print("item: ",selectedItem ?? Audio(index: 0,name: "none"))
+                                print("oldName: ",selectedItem?.name ?? "")
                                // EditFileNamesView()
                             }
                             
@@ -471,11 +492,18 @@ struct ContentView: View {
                                     
                                     
                                     Button(role: .destructive) {
-                                        guard let index = m4aAudios.firstIndex(of: audios[index]) else { return }
-                                        let audioURL = m4aAudios[index]
+                                     
+                                        guard let index = audios.firstIndex(of: m4aAudios[index])
+                                        else {
+                                       
+                                            return
+                                        }
+                                      
+                                        let audioURL = audios[index]
+                                     
                                         let audioName = audioURL.lastPathComponent
                                         print(audioName)
-                                        m4aAudios.remove(at: index)
+                                        audios.remove(at: index)
                                         recorder.delete(name: audioName)
                                         
                                     } label: {
@@ -509,35 +537,42 @@ struct ContentView: View {
                                 recorder.delete(name: audioName)
                             }
                         }
-//                        .sheet(isPresented: $isEditingName) {
-//                            EditFileNamesView()
-//                                .textField("Enter your name", text: $newName)
-//                                .keyboardType(.default)
-//                                .presentationDetents([.medium, .large])
-//                        }
-//                        .onTapGesture {
-//                            isEditingName = true
-//                        }
+                       
+                        
 
-//                        .sheet(item: $selectedIndex) { item in
-//                                    EditFileNamesView()
-//                            TextField("Enter your name",text: $newName)
-//                                           .keyboardType(/*@START_MENU_TOKEN@*/.default/*@END_MENU_TOKEN@*/)
-//                                           .presentationDetents([.medium,.large])
-//                                }
                         
-//                        $selectedIndex
-                      
-                        
-                        
-                        
-                        
+                        .sheet(item: $selectedItem) { selectedItem in
+                            // Define oldName here
+                            let oldName = selectedItem.name
+                            
+                            VStack {
+                                if #available(iOS 16.0, *) {
+                                    TextField("Enter your name", text: $newName)
+                                        .keyboardType(.default)
+                                        .presentationDetents([.medium, .large])
+                                } else {
+                                    TextField("Enter your name", text: $newName)
+                                        .keyboardType(.default)
+                                }
+                                EditFileNamesView(audioName: $newName)
+                            }
+                        }
+                        .onSubmit {
+                            
+                            print("oldName = ",oldName)
+                            recorder.changeRecordingFileName(oldName: oldName, newName: newName)
+                           // users[selectedUserIndex ?? -1].name = name
+                        }
+
                         
                     }
+                    
                     Spacer()
-                    if(selectedIndex<audios.count)
+                    let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
+                   
+                    if(selectedIndex ?? 0<m4aAudios.count)
                     {
-                        Text("Selected audio: \(audios[selectedIndex].lastPathComponent)")
+                        Text("Selected audio: \(m4aAudios[selectedIndex ?? 0].lastPathComponent)")
                     }
                 
                    
@@ -766,14 +801,64 @@ struct ContentView: View {
                          }
                      }
     private func saveTranscriptionToFile(transcription: String, fileName:String){
+        struct transcriptionObj:Codable{
+        var name: String
+        var content: String
+        func encode(to encoder: Encoder) throws {
+                    var container = encoder.container(keyedBy: CodingKeys.self)
+                    try container.encode(name, forKey: .name)
+                    try container.encode(content, forKey: .content)
+                }
+
+        enum CodingKeys: String, CodingKey {
+                    case name
+                    case content
+                }
+        }
+        var data = Data()
+        let transcript = transcriptionObj.init(name: fileName, content: transcription)
+        
+        do{
+            data = try JSONEncoder().encode(transcript)
+        }
+        catch{
+            print("Error encoding transcript: \(error)")
+        }
+        
+        
+        
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let fileURL = documentsDirectory.appendingPathComponent(fileName)
-        do {
-                try transcription.write(to: fileURL, atomically: true, encoding: .utf8)
-                print("Transcription saved to:", fileURL)
-            } catch {
-                print("Error saving transcription:", error.localizedDescription)
-            }
+        do{
+            try data.write(to: fileURL)
+            print("Data saved successfully to \(fileURL)")
+        }
+        catch{
+            print("Error saving data: \(error)")
+        }
+        
+//        if FileManager.default.fileExists(atPath: fileURL.path) {
+//            // Read the data from the file
+//            do {
+//                let data = try Data(contentsOf: fileURL)
+//                
+//                // Decode the data into your struct
+//                let transcriptFinal = try JSONDecoder().decode(transcriptionObj.self, from: data)
+//
+//                // Now you have the struct instance
+//                print("Retrieved transcript:", transcript)
+//            } catch {
+//                print("Error reading or decoding data:", error)
+//            }
+//        } else {
+//            print("File does not exist at path:", fileURL.path)
+//        }
+//        do {
+//                try transcription.write(to: fileURL, atomically: true, encoding: .utf8)
+//                print("Transcription saved to:", fileURL)
+//            } catch {
+//                print("Error saving transcription:", error.localizedDescription)
+//            }
     }
     private func getTranscriptionFileName() ->String
     {
@@ -818,7 +903,7 @@ struct ContentView: View {
                    
                      
                      }
-                 
+              
 
 
 
