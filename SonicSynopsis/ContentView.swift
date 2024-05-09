@@ -9,6 +9,8 @@ import SwiftUI
 import Speech
 import GoogleGenerativeAI
 
+
+
 class KAudioRecorder: NSObject {
 
     
@@ -338,13 +340,36 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
 }
 
 
+class SharedData: ObservableObject {
+   
+    @Published var transcription: transcriptionObj
+    init(transcription: transcriptionObj) {
+         self.transcription = transcription
+     }
+   
+}
 
+struct transcriptionObj:Codable{
+var name: String
+var content: String
+func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(name, forKey: .name)
+            try container.encode(content, forKey: .content)
+        }
+
+enum CodingKeys: String, CodingKey {
+            case name
+            case content
+        }
+}
 
 struct Audio:Identifiable{
     let id = UUID()
     let index:Int
     var name:String
 }
+
 
     
 
@@ -373,12 +398,12 @@ struct ContentView: View {
     @State private var selectedItem: Audio? = nil
     
     @State private var audio:Audio? = nil
-    
+    @State var oldName = ""
 //    audioNames = audios.enumerated().map { index, url in
 //        Audio(index: index, name: url.lastPathComponent)
 //    }
     
-    var oldName = ""
+  
     var recorder = KAudioRecorder.shared
     @EnvironmentObject var router: Router
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
@@ -415,7 +440,7 @@ struct ContentView: View {
                         .foregroundColor(.white)
                     
                     List  {
-                        var m4aAudios = audios.filter { $0.pathExtension == "m4a" }
+                        let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
              
                         ForEach(m4aAudios.indices, id: \.self) { index in
                             //Text(audios[index].lastPathComponent)
@@ -478,7 +503,7 @@ struct ContentView: View {
                                                 print("numbers: ",numbers)
                                                 var cnt = Int(numbers) ?? 0
                                                 cnt += 1
-                                                let fileName = "transcription\(cnt).txt"
+                                                let fileName = "transcription\(cnt).json"
                                                 saveTranscriptionToFile(transcription: transcription, fileName: fileName)
                                             
                                             } else {
@@ -801,25 +826,17 @@ struct ContentView: View {
                          }
                      }
     private func saveTranscriptionToFile(transcription: String, fileName:String){
-        struct transcriptionObj:Codable{
-        var name: String
-        var content: String
-        func encode(to encoder: Encoder) throws {
-                    var container = encoder.container(keyedBy: CodingKeys.self)
-                    try container.encode(name, forKey: .name)
-                    try container.encode(content, forKey: .content)
-                }
-
-        enum CodingKeys: String, CodingKey {
-                    case name
-                    case content
-                }
-        }
+        
         var data = Data()
         let transcript = transcriptionObj.init(name: fileName, content: transcription)
         
         do{
+            
             data = try JSONEncoder().encode(transcript)
+            print("Encoded JSON data:", String(data: data, encoding: .utf8) ?? "Failed to decode data")
+            
+            let transcriptFinal = try JSONDecoder().decode(transcriptionObj.self, from: data)
+            print("\nDecoded Transcript:", transcriptFinal)
         }
         catch{
             print("Error encoding transcript: \(error)")
