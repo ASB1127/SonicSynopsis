@@ -182,7 +182,6 @@ struct ManageSummariesView: View {
                         submit()
                         let fileURL = FileManagerHelper.getFileURL(forFilename: summary.name)
                         let nameSummary = "\(summaryName).summary"
-                        //                        saveFileName(transcript: jsonFile[selectedIndex!], newName: name)
                         print("summary: ",summaryName)
                         FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameSummary)
                         FileManagerHelper.saveFileName(transcript: summary , newName: nameSummary, jsonFile: &summaryFile)

@@ -408,7 +408,7 @@ enum APIKey {
 struct EditTranscriptionsView: View {
     
     // MARK: - Properties
-    @Environment (\.dismiss) var dismiss
+    @Environment (\.dismiss) var submit
     @Binding var transcriptName: String
     @Binding var transcriptContent: String
     @State var initialName:String
@@ -437,8 +437,8 @@ struct EditTranscriptionsView: View {
                 }
             }
             
-            Button("Dismiss") {
-                dismiss()
+            Button("Submit") {
+                submit()
                 
                 let fileURL = FileManagerHelper.getFileURL(forFilename: transcript.name)
                 let nameTranscript = "\(transcriptName).transcription"
