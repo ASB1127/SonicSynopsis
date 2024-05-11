@@ -149,54 +149,61 @@ struct ManageTranscriptionsView: View {
             
             EditTranscriptionsView(
                 transcriptName: $name,
-                transcriptContent: $transcriptContent
+                transcriptContent: $transcriptContent,
+                initialName: selectedTranscript.name
             )
             if #available(iOS 16.0, *) {
-                TextField("\(selectedTranscript.name)",text: $name)
-                    .keyboardType(/*@START_MENU_TOKEN@*/.default/*@END_MENU_TOKEN@*/)
-                    .presentationDetents([.medium,.large])
-                    .onAppear {
-                        
-                        transcriptContent = selectedTranscript.content
-                    }
-                    .onSubmit{
-                        let fileURL = FileManagerHelper.getFileURL(forFilename: transcriptFile[selectedIndex ?? -1].name)
-                        
-                        print("newName: ",name)
-                        
-                        print("oldName: ",transcriptFile[selectedIndex ?? -1].name)
-                        print("jsonFiles: ",transcriptFile)
-                        let nameTranscript = "\(name).transcription"
-                        //                        saveFileName(transcript: jsonFile[selectedIndex!], newName: name)
-                        
-                        FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameTranscript)
-                        FileManagerHelper.saveFileName(transcript: transcriptFile[selectedIndex!], newName: nameTranscript, jsonFile: &transcriptFile)
-                        //                        deleteFileName(fileURL: fileURL!, filename: oldName)
-                        //                        jsonFile[selectedIndex ?? -1].name=name
-                        
-                        
-                        
-                        
-                    }
+                HStack {
+                    Spacer(minLength: 20)
+                    TextField("\(selectedTranscript.name)",text: $name)
+                        .keyboardType(/*@START_MENU_TOKEN@*/.default/*@END_MENU_TOKEN@*/)
+                        .presentationDetents([.medium,.large])
+                        .onAppear {
+                            
+                            transcriptContent = selectedTranscript.content
+                        }
+                        .onSubmit{
+                            let fileURL = FileManagerHelper.getFileURL(forFilename: transcriptFile[selectedIndex ?? -1].name)
+                            
+                            print("newName: ",name)
+                            
+                            print("oldName: ",transcriptFile[selectedIndex ?? -1].name)
+                            print("jsonFiles: ",transcriptFile)
+                            let nameTranscript = "\(name).transcription"
+                            //                        saveFileName(transcript: jsonFile[selectedIndex!], newName: name)
+                            
+                            FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameTranscript)
+                            FileManagerHelper.saveFileName(transcript: transcriptFile[selectedIndex!], newName: nameTranscript, jsonFile: &transcriptFile)
+                            //                        deleteFileName(fileURL: fileURL!, filename: oldName)
+                            //                        jsonFile[selectedIndex ?? -1].name=name
+                            
+                            
+                            
+                            
+                        }
+                }
                 
                 
             } else {
-                TextField("Enter your name",text: $name)
-                    .keyboardType(/*@START_MENU_TOKEN@*/.default/*@END_MENU_TOKEN@*/)
-                    .onAppear {
-                        
-                        transcriptContent = selectedTranscript.content
-                    }
-                    .onSubmit{
-                        let fileURL = FileManagerHelper.getFileURL(forFilename: transcriptFile[selectedIndex ?? -1].name)
-                        
-                        print("fileURL: ",fileURL!)
-                        print("name: ",transcriptFile[selectedIndex ?? -1].name)
-                        transcriptFile[selectedIndex ?? -1].name=name
-                        
-                        FileManagerHelper.changeFileName(fileURL: fileURL!, newName: name)
-                        
-                    }
+                HStack {
+                    Spacer(minLength: 20)
+                    TextField("Enter your name",text: $name)
+                        .keyboardType(/*@START_MENU_TOKEN@*/.default/*@END_MENU_TOKEN@*/)
+                        .onAppear {
+                            
+                            transcriptContent = selectedTranscript.content
+                        }
+                        .onSubmit{
+                            let fileURL = FileManagerHelper.getFileURL(forFilename: transcriptFile[selectedIndex ?? -1].name)
+                            
+                            print("fileURL: ",fileURL!)
+                            print("name: ",transcriptFile[selectedIndex ?? -1].name)
+                            transcriptFile[selectedIndex ?? -1].name=name
+                            
+                            FileManagerHelper.changeFileName(fileURL: fileURL!, newName: name)
+                            
+                        }
+                }
             }
             
             
@@ -395,17 +402,28 @@ struct EditTranscriptionsView: View {
     @Environment (\.dismiss) var dismiss
     @Binding var transcriptName: String
     @Binding var transcriptContent: String
-    
+    @State var initialName:String
     // MARK: - Body
     var body: some View {
-        VStack(spacing: 30){
-            Text("\(transcriptName)")
-                .font(.title)
-                .fontWeight(.bold)
-            
-            Text("\(transcriptContent)")
-                .font(.body)
-                .fontWeight(.medium)
+        Spacer(minLength: 30)
+        VStack{
+            HStack{
+                Text("\(initialName)\(transcriptName)")
+                    .font(.title)
+                    .fontWeight(.bold)
+            }
+            .padding(.horizontal)
+            Spacer(minLength: 40)
+            ScrollView {
+                Text("\(transcriptContent)")
+                    .font(.body)
+                    .fontWeight(.medium)
+            }
+            .onChange(of: transcriptName) { newName in
+                if !newName.isEmpty {
+                    initialName = ""
+                }
+            }
             
             Button("Dismiss") {
                 dismiss()
