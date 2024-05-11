@@ -7,7 +7,7 @@
 import AVFoundation
 import SwiftUI
 import Speech
-import GoogleGenerativeAI
+
 
 
 
@@ -36,7 +36,7 @@ class KAudioRecorder: NSObject {
     private func recordSetup() {
         
         var cnt = 0
-        print(getMostRecentRecordingFileName())
+        
         if let fileName = getMostRecentRecordingFileName(){
             print("fileName = ",fileName)
             let regex = try! NSRegularExpression(pattern: "\\d+(?=\\.)")
@@ -340,16 +340,19 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
 }
 
 
-class SharedData: ObservableObject {
+class SharedTranscript: ObservableObject {
    
-    @Published var transcription: transcriptionObj
-    init(transcription: transcriptionObj) {
+    @Published var transcription: textobj
+    init(transcription: textobj) {
          self.transcription = transcription
      }
    
 }
 
-struct transcriptionObj:Codable{
+
+
+struct textobj:Codable, Identifiable{
+var id = UUID()
 var name: String
 var content: String
 func encode(to encoder: Encoder) throws {
@@ -381,14 +384,14 @@ struct ContentView: View {
     @State private var alert = false
     @State private var timeElapsed: TimeInterval = 0
     @State private var isRunning = false
-  
+    
     @State private var audios: [URL] = []
     @State private var audioPlayer: AVAudioPlayer?
     @State private var recording = false
     @State private var newName: String = ""
     @State private var isEditingName = false
-//    @State private var selectedAudioIndex: Int?
-//    @State private var newNames: [String] = []
+    //    @State private var selectedAudioIndex: Int?
+    //    @State private var newNames: [String] = []
     @State private var fileNames: [String] = []
     //@State private var selectedItem: Int?
     @State private var selectedIndex: Int? = nil
@@ -399,39 +402,44 @@ struct ContentView: View {
     
     @State private var audio:Audio? = nil
     @State var oldName = ""
-//    audioNames = audios.enumerated().map { index, url in
-//        Audio(index: index, name: url.lastPathComponent)
-//    }
+    //    audioNames = audios.enumerated().map { index, url in
+    //        Audio(index: index, name: url.lastPathComponent)
+    //    }
     
-  
+    
     var recorder = KAudioRecorder.shared
     @EnvironmentObject var router: Router
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     
     
     func delete(at offsets: IndexSet) {
+        var m4audios = audios.filter{$0.lastPathComponent.contains(".m4a")}
         for index in offsets {
-            let audioURL = audios[index]
+            let audioURL = m4audios[index]
             let audioName = audioURL.lastPathComponent
             print(audioName)
-            audios.remove(at: index)
+            m4audios.remove(at: index)
             recorder.delete(name: audioName)
         }
     }
     func play(at offsets: IndexSet){
+        let m4audios = audios.filter{$0.lastPathComponent.contains(".m4a")}
+        print("audios: ",m4audios)
         for index in offsets {
-            let audioURL = audios[index]
+            print("m4aaudios: ",m4audios)
+            let audioURL = m4audios[index]
             let audioName = audioURL.lastPathComponent
+            print("audioName: ",audioName)
             
             recorder.play(name: audioName)
         }
     }
-   
+    
     var body: some View {
-
+        
         
         TabView(selection: $router.selectedTab){
-         
+            
             NavigationView{
                 VStack {
                     
@@ -441,7 +449,7 @@ struct ContentView: View {
                     
                     List  {
                         let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
-             
+                        
                         ForEach(m4aAudios.indices, id: \.self) { index in
                             //Text(audios[index].lastPathComponent)
                             HStack{
@@ -459,98 +467,100 @@ struct ContentView: View {
                                         Spacer()
                                     }
                                 }
-                            
+                                
                             }
-                           
+                            
                             .contentShape(Rectangle())
                             .frame(maxWidth: .infinity)
                             .onTapGesture {
-                             
+                                
                                 selectedIndex = index
                                 selectedAudioIndex = index
                                 selectedItem = Audio(index: index, name: m4aAudios[index].lastPathComponent)
                                 print("item: ",selectedItem ?? Audio(index: 0,name: "none"))
                                 print("oldName: ",selectedItem?.name ?? "")
-                               // EditFileNamesView()
+                                // EditFileNamesView()
                             }
                             
-                           
                             
-                        
-//                            TextField("Enter name", text: $newNames[index])
-//                                .onSubmit {
-//                                    print("audios[index] = ",audios[index])
-//                                    print("newNames[index] = ", newNames[index])
-//                                    let newName = "\(newNames[index]).m4a"
-//                                    print("newName = ",newName)
-//                                    let oldName = audios[index].lastPathComponent
-//                                    print("oldName = ",oldName)
-//                                    recorder.changeRecordingFileName(oldName: oldName , newName: newName)
-//
-//                                }
-                                .swipeActions(allowsFullSwipe: false) {
-                                    Button {
-                                        let audioURL = m4aAudios[index]
-                                        requestTranscribePermission()
-                                        transcribeFile(audioURL: audioURL) { transcription in
-                                           
-                                            if let transcription = transcription {
-                                               print("Transcription:", transcription)
-                                               
-                                                let recentFileName = getTranscriptionFileName()
-                                                let numbers = recentFileName.components(separatedBy: CharacterSet.decimalDigits.inverted)
-                                                                            .joined()
-                                                print("numbers: ",numbers)
-                                                var cnt = Int(numbers) ?? 0
-                                                cnt += 1
-                                                let fileName = "transcription\(cnt).json"
-                                                saveTranscriptionToFile(transcription: transcription, fileName: fileName)
-                                            
-                                            } else {
-                                                print("Transcription is nil.")
-                                            }
-                                        }
-                                    } label: {
-                                        Label("Transcribe", systemImage: "waveform.path.ecg")
-                                    }
-                                    .tint(.indigo)
-                                    
-                                    
-                                    Button(role: .destructive) {
-                                     
-                                        guard let index = audios.firstIndex(of: m4aAudios[index])
-                                        else {
-                                       
-                                            return
-                                        }
-                                      
-                                        let audioURL = audios[index]
-                                     
-                                        let audioName = audioURL.lastPathComponent
-                                        print(audioName)
-                                        audios.remove(at: index)
-                                        recorder.delete(name: audioName)
+                            
+                            
+                            //                            TextField("Enter name", text: $newNames[index])
+                            //                                .onSubmit {
+                            //                                    print("audios[index] = ",audios[index])
+                            //                                    print("newNames[index] = ", newNames[index])
+                            //                                    let newName = "\(newNames[index]).m4a"
+                            //                                    print("newName = ",newName)
+                            //                                    let oldName = audios[index].lastPathComponent
+                            //                                    print("oldName = ",oldName)
+                            //                                    recorder.changeRecordingFileName(oldName: oldName , newName: newName)
+                            //
+                            //                                }
+                            .swipeActions(allowsFullSwipe: false) {
+                                Button {
+                                    let audioURL = m4aAudios[index]
+                                    requestTranscribePermission()
+                                    transcribeFile(audioURL: audioURL) { transcription in
                                         
-                                    } label: {
-                                        Label("Delete", systemImage: "trash.fill")
-                                    }
-                                    Button(action: {
-                                                    guard let index = m4aAudios.firstIndex(of: m4aAudios[index]) else { return }
-                                                    play(at: IndexSet(integer: index))
-                                                }) {
-                                                    Label("Play", systemImage: "play.circle")
-                                                }
-                                    
-                                   
-                                                
-                                                
+                                        if let transcription = transcription {
+                                            print("Transcription:", transcription)
                                             
-                                                
-                                                
-                                            }
+                                            let recentFileName = getMostRecentTranscriptionFileName()
+                                            print("recentFileName: ",recentFileName)
+                                            let numbers = recentFileName.components(separatedBy: CharacterSet.decimalDigits.inverted)
+                                                .joined()
+                                            print("numbers: ",numbers)
+                                            var cnt = Int(numbers) ?? 0
+                                            cnt += 1
+                                            let fileName = "transcription\(cnt).json"
+                                            saveTranscriptionToFile(transcription: transcription, fileName: fileName)
+                                            
+                                        } else {
+                                            print("Transcription is nil.")
+                                        }
+                                    }
+                                } label: {
+                                    Label("Transcribe", systemImage: "waveform.path.ecg")
+                                }
+                                .tint(.indigo)
+                                
+                                
+                                Button(role: .destructive) {
+                                    
+                                    guard let index = audios.firstIndex(of: m4aAudios[index])
+                                    else {
+                                        
+                                        return
+                                    }
+                                    
+                                    let audioURL = audios[index]
+                                    
+                                    let audioName = audioURL.lastPathComponent
+                                    print(audioName)
+                                    audios.remove(at: index)
+                                    recorder.delete(name: audioName)
+                                    
+                                } label: {
+                                    Label("Delete", systemImage: "trash.fill")
+                                }
+                                Button(action: {
+                                    guard let index = m4aAudios.firstIndex(of: m4aAudios[index]) else { return }
+                                
+                                    play(at: IndexSet(integer: index))
+                                }) {
+                                    Label("Play", systemImage: "play.circle")
+                                }
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                            }
                             
-                               
-                          
+                            
+                            
                             
                         }
                         .onDelete { indexSet in
@@ -562,9 +572,9 @@ struct ContentView: View {
                                 recorder.delete(name: audioName)
                             }
                         }
-                       
                         
-
+                        
+                        
                         
                         .sheet(item: $selectedItem) { selectedItem in
                             // Define oldName here
@@ -580,212 +590,178 @@ struct ContentView: View {
                                         .keyboardType(.default)
                                 }
                                 EditFileNamesView(audioName: $newName)
+                                    .onSubmit {
+                                        
+                                        print("oldName = ",oldName)
+                                        print("newName = ",newName)
+                                        recorder.changeRecordingFileName(oldName: oldName, newName: newName)
+                                        // users[selectedUserIndex ?? -1].name = name
+                                    }
                             }
                         }
-                        .onSubmit {
-                            
-                            print("oldName = ",oldName)
-                            recorder.changeRecordingFileName(oldName: oldName, newName: newName)
-                           // users[selectedUserIndex ?? -1].name = name
-                        }
-
+                        
+                        
                         
                     }
                     
                     Spacer()
                     let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
-                   
+                    
                     if(selectedIndex ?? 0<m4aAudios.count)
                     {
                         Text("Selected audio: \(m4aAudios[selectedIndex ?? 0].lastPathComponent)")
                     }
-                
-                   
-                     
+                    
+                    
+                    
                     Spacer(minLength: 80)
-                     Text("\(timeString(time: timeElapsed))")
-                     .font(.system(size: 75))
-                     .fontWeight(.light)
-                     .padding()
-                     .foregroundColor(.white)
-                     
-                     Spacer(minLength: 120)
-                     
-                     ZStack {
-                     
-                     
-                     Circle()
-                     .frame(width: 100, height: 100, alignment: .center)
-                     .foregroundColor(Color(.systemIndigo))
-                     .overlay(Text(recordStop))
-                     .offset(y: -120)
-                     }
-                     .onTapGesture {
-                     if recordStop == "Record" {
-                     
-                     startRecording()
-                     } else {
-                     stopRecording()
-                     }
-                     }
-                     .alert(isPresented: $alert, content: {
-                     Alert(title: Text("Error"), message: Text("Enable Access"))
-                     })
-                     .onReceive(timer) { _ in
-                     if isRunning {
-                     timeElapsed += 0.1
-                     }
-                     }
-                     
-                     
-                     
-                     Spacer(minLength: 20)
-                     
-                     
-                     .padding(.top, -70)
-                     }
-                     
-                     
-                     .onAppear {
-                     requestMicrophonePermission()
-                     getAudios()
-                     withAnimation(.spring(response: 0.55, dampingFraction: 0.825, blendDuration: 0).repeatForever(autoreverses: true)) {
-                     recording.toggle()
-                     }
-                     }
-                     
-                     
-                     
-                     .preferredColorScheme(.dark)
-                     }
-                     .tabItem{
-                     Text("Record")
-                     }
-                     .tag(0)
-                     
-                     NavigationView{
-                     ManageTranscriptionsView()
-                     }
-                     
-                     .tabItem{
-                     Text("Manage Transcriptions")
-                     }
-                     .tag(1)
-                     
-                     NavigationView{
-                     Text("Manage Summaries")
-                     .font(.title)
-                     .navigationTitle(Text("2"))
-                     
-                     }
-                     
-                     .tabItem{
-                     Text("Manage Summaries")
-                     }
-                     .tag(2)
-                     
-                     }
-                     
-                     
-                     
-                     
-                     }
-                     
-                     
-                     enum APIKey {
-                     // Fetch the API key from `GenerativeAI-Info.plist`
-                     static var `default`: String {
-                     guard let filePath = Bundle.main.path(forResource: "GenerativeAI-Info", ofType: "plist")
-                     else {
-                     fatalError("Couldn't find file 'GenerativeAI-Info.plist'.")
-                     }
-                     let plist = NSDictionary(contentsOfFile: filePath)
-                     guard let value = plist?.object(forKey: "API_KEY") as? String else {
-                     fatalError("Couldn't find key 'API_KEY' in 'GenerativeAI-Info.plist'.")
-                     }
-                     if value.starts(with: "_") {
-                     fatalError(
-                     "Follow the instructions at https://ai.google.dev/tutorials/setup to get an API key."
-                     )
-                     }
-                     
-                     return value
-                     }
-                     }
-                     
-                     
-                     
-                     private func startRecording() {
-                     do {
-                     recorder.recordName = "music"
-                     recorder.record()
-                     recordStop = "Stop"
-                     
-                     isRunning = true
-                     }
-                     }
-                     
-                     private func stopRecording() {
-                     recordStop = "Record"
-                     isRunning = false
-                     recorder.stop()
-                     getAudios()
-                     timeElapsed = 0.0
-                     }
-                     
-                   
-                     private func requestMicrophonePermission() {
-                     AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                     if granted {
-                     print("User has been granted access")
-                     } else {
-                     print("User has not been granted access")
-                     }
-                     }
-                     }
-                     
-                     private func getAudios() {
-                     do {
-                     let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                     let result = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .producesRelativePathURLs)
-                     audios.removeAll()
-                     for i in result {
-                     audios.append(i)
-                     }
-                     } catch {
-                     print("Error getting audios: \(error.localizedDescription)")
-                     }
-                     }
-                     private func timeString(time: TimeInterval) -> String {
-                     let minutes = Int(time) / 60
-                     let seconds = Int(time) % 60
-                     let milliseconds = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
-                     return String(format: "%02d.%02d:%02d", minutes, seconds, milliseconds)
-                     }
-                     
-                     private func Summarize(_ summarize:String) async{
-                     
-                     let model = GenerativeModel(name: "gemini-pro", apiKey: APIKey.default)
-                     let prompt = "Give me a simple summary in note taking format of the following " + summarize
-                     
-                     do{
-                     let response = try await model.generateContent(prompt)
-                     if let text = response.text {
-                     print(text)
-                     }
-                     }
-                     catch{
-                     print("Error",error)
-                     }
-                     
-                     
-                     }
-                     private func getDir() -> URL {
-                     
-                     let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-                     
-                     return paths.first!
-                     }
+                    Text("\(timeString(time: timeElapsed))")
+                        .font(.system(size: 75))
+                        .fontWeight(.light)
+                        .padding()
+                        .foregroundColor(.white)
+                    
+                    Spacer(minLength: 120)
+                    
+                    ZStack {
+                        
+                        
+                        Circle()
+                            .frame(width: 100, height: 100, alignment: .center)
+                            .foregroundColor(Color(.systemIndigo))
+                            .overlay(Text(recordStop))
+                            .offset(y: -120)
+                    }
+                    .onTapGesture {
+                        if recordStop == "Record" {
+                            
+                            startRecording()
+                        } else {
+                            stopRecording()
+                        }
+                    }
+                    .alert(isPresented: $alert, content: {
+                        Alert(title: Text("Error"), message: Text("Enable Access"))
+                    })
+                    .onReceive(timer) { _ in
+                        if isRunning {
+                            timeElapsed += 0.1
+                        }
+                    }
+                    
+                    
+                    
+                    Spacer(minLength: 20)
+                    
+                    
+                        .padding(.top, -70)
+                }
+                
+                
+                .onAppear {
+                    requestMicrophonePermission()
+                    getAudios()
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.825, blendDuration: 0).repeatForever(autoreverses: true)) {
+                        recording.toggle()
+                    }
+                }
+                
+                
+                
+                .preferredColorScheme(.dark)
+            }
+            .tabItem{
+                Text("Record")
+            }
+            .tag(0)
+            
+            NavigationView{
+                ManageTranscriptionsView()
+            }
+            
+            .tabItem{
+                Text("Manage Transcriptions")
+            }
+            .tag(1)
+            
+            NavigationView{
+                Text("Manage Summaries")
+                    .font(.title)
+                    .navigationTitle(Text("2"))
+                
+            }
+            
+            .tabItem{
+                Text("Manage Summaries")
+            }
+            .tag(2)
+            
+        }
+        
+        
+        
+        
+    }
+    
+    
+    
+    
+    
+    private func startRecording() {
+        do {
+            recorder.recordName = "music"
+            recorder.record()
+            recordStop = "Stop"
+            
+            isRunning = true
+        }
+    }
+    
+    private func stopRecording() {
+        recordStop = "Record"
+        isRunning = false
+        recorder.stop()
+        getAudios()
+        timeElapsed = 0.0
+    }
+    
+    
+    private func requestMicrophonePermission() {
+        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+            if granted {
+                print("User has been granted access")
+            } else {
+                print("User has not been granted access")
+            }
+        }
+    }
+    
+    private func getAudios() {
+        do {
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let result = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .producesRelativePathURLs)
+            audios.removeAll()
+            for i in result {
+                audios.append(i)
+            }
+        } catch {
+            print("Error getting audios: \(error.localizedDescription)")
+        }
+    }
+    private func timeString(time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        let milliseconds = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
+        return String(format: "%02d.%02d:%02d", minutes, seconds, milliseconds)
+    }
+    
+    
+    private func getDir() -> URL {
+        
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        
+        return paths.first!
+    }
     private func transcribeFile(audioURL: URL,  completion: @escaping (String?)-> Void){
         //let bundle = getDir().appendingPathComponent(name.appending(".m4a"))
         let speechRecognizer = SFSpeechRecognizer()
@@ -812,40 +788,43 @@ struct ContentView: View {
             
         }
         
-}
-                     private func requestTranscribePermission(){
-                         SFSpeechRecognizer.requestAuthorization{ authStatus in DispatchQueue.main.async{
-                             if authStatus == .authorized
-                             {
-                                 print("Transcription Ready TO Go")
-                             }
-                             else{
-                                 print("Transcription permission was declined.")
-                             }
-                         }
-                         }
-                     }
+    }
+    private func requestTranscribePermission(){
+        SFSpeechRecognizer.requestAuthorization{ authStatus in DispatchQueue.main.async{
+            if authStatus == .authorized
+            {
+                print("Transcription Ready TO Go")
+            }
+            else{
+                print("Transcription permission was declined.")
+            }
+        }
+        }
+    }
     private func saveTranscriptionToFile(transcription: String, fileName:String){
-        
+        print("fileName: ",fileName)
         var data = Data()
-        let transcript = transcriptionObj.init(name: fileName, content: transcription)
+        let transcript = textobj.init(name: fileName, content: transcription)
         
         do{
             
             data = try JSONEncoder().encode(transcript)
             print("Encoded JSON data:", String(data: data, encoding: .utf8) ?? "Failed to decode data")
-            
-            let transcriptFinal = try JSONDecoder().decode(transcriptionObj.self, from: data)
+            //DEBUG comment these two lines
+            let transcriptFinal = try JSONDecoder().decode(textobj.self, from: data)
             print("\nDecoded Transcript:", transcriptFinal)
         }
         catch{
+            
             print("Error encoding transcript: \(error)")
         }
         
         
         
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let fileURL = documentsDirectory.appendingPathComponent(fileName)
+        print("documentsdir: \n",documentsDirectory)
+        let fileURL = documentsDirectory.appendingPathComponent(fileName)
+        print("fileURL: ", fileURL)
         do{
             try data.write(to: fileURL)
             print("Data saved successfully to \(fileURL)")
@@ -854,73 +833,64 @@ struct ContentView: View {
             print("Error saving data: \(error)")
         }
         
-//        if FileManager.default.fileExists(atPath: fileURL.path) {
-//            // Read the data from the file
-//            do {
-//                let data = try Data(contentsOf: fileURL)
-//                
-//                // Decode the data into your struct
-//                let transcriptFinal = try JSONDecoder().decode(transcriptionObj.self, from: data)
-//
-//                // Now you have the struct instance
-//                print("Retrieved transcript:", transcript)
-//            } catch {
-//                print("Error reading or decoding data:", error)
-//            }
-//        } else {
-//            print("File does not exist at path:", fileURL.path)
-//        }
-//        do {
-//                try transcription.write(to: fileURL, atomically: true, encoding: .utf8)
-//                print("Transcription saved to:", fileURL)
-//            } catch {
-//                print("Error saving transcription:", error.localizedDescription)
-//            }
+        //        if FileManager.default.fileExists(atPath: fileURL.path) {
+        //            // Read the data from the file
+        //            do {
+        //                let data = try Data(contentsOf: fileURL)
+        //
+        //                // Decode the data into your struct
+        //                let transcriptFinal = try JSONDecoder().decode(transcriptionObj.self, from: data)
+        //
+        //                // Now you have the struct instance
+        //                print("Retrieved transcript:", transcript)
+        //            } catch {
+        //                print("Error reading or decoding data:", error)
+        //            }
+        //        } else {
+        //            print("File does not exist at path:", fileURL.path)
+        //        }
+        //        do {
+        //                try transcription.write(to: fileURL, atomically: true, encoding: .utf8)
+        //                print("Transcription saved to:", fileURL)
+        //            } catch {
+        //                print("Error saving transcription:", error.localizedDescription)
+        //            }
     }
-    private func getTranscriptionFileName() ->String
-    {
-
+    private func getMostRecentTranscriptionFileName() -> String {
         let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        
+        var mostRecentFileURL: URL?
+        var highestCount = 0
+        
         do {
-                    let documentsURL = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-                    let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
-                    
-                    // Filter out files and keep only those with ".txt" extension
-                    let textFileURLs = fileURLs.filter { $0.pathExtension == "txt" }
-                    
-                    // Sort files by creation date, latest first
-                    let sortedTextFileURLs = textFileURLs.sorted {
-                        (url1, url2) -> Bool in
-                        do {
-                            let attributes1 = try fileManager.attributesOfItem(atPath: url1.path)
-                            let attributes2 = try fileManager.attributesOfItem(atPath: url2.path)
-                            if let creationDate1 = attributes1[.creationDate] as? Date,
-                               let creationDate2 = attributes2[.creationDate] as? Date {
-                                return creationDate1 > creationDate2
-                            }
-                        } catch {
-                            print("Error sorting files:", error.localizedDescription)
-                        }
-                        return false
+            let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
+            for fileURL in fileURLs {
+                let fileName = fileURL.lastPathComponent
+                
+                // Check if the filename adheres to the expected pattern and contains a number
+                if fileName.hasPrefix("transcription") && fileName.hasSuffix(".json") {
+                    let countString = fileName.replacingOccurrences(of: "transcription", with: "").replacingOccurrences(of: ".json", with: "")
+                    if let count = Int(countString), count > highestCount {
+                        highestCount = count
+                        mostRecentFileURL = fileURL
                     }
-                    
-            if let mostRecentFileURL = sortedTextFileURLs.first {
-                // Get the filename of the most recent file
-                let mostRecentFileName = mostRecentFileURL.lastPathComponent
-                print(mostRecentFileName)
-                return mostRecentFileName
-            } else {
-                        print("No transcription files found.")
-                    }
-                } catch {
-                    print("Error loading files from document directory:", error.localizedDescription)
                 }
-        return ""
+            }
+            
+            // If no valid filenames found, set most recent filename to have count 0
+            if mostRecentFileURL == nil {
+                let defaultFileName = "transcription0.json"
+                mostRecentFileURL = documentsURL.appendingPathComponent(defaultFileName)
+            }
+        } catch {
+            print("Error while enumerating files:", error)
+        }
+        
+        return mostRecentFileURL!.lastPathComponent
     }
-                   
-                     
-                     }
-              
+
+}
 
 
 
