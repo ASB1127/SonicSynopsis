@@ -55,8 +55,15 @@ struct ManageSummariesView: View {
             EditSummariesView(
                 summaryName: $name,
                 summaryContent: $summaryContent,
-                initialName: selectedSummary.name
+                initialName: selectedSummary.name,
+                summaryFile:summaryFile,
+                fileManagerHelper: FileManagerHelper.init(),
+                summary: selectedSummary
             )
+            .onDisappear {
+                   // Perform actions when the sheet is dismissed
+                   loadFiles(pathExtension: "summary")
+               }
            
             if #available(iOS 16.0, *) {
                 HStack {
@@ -76,12 +83,9 @@ struct ManageSummariesView: View {
                             print("oldName: ",summaryFile[selectedIndex ?? -1].name)
                             print("jsonFiles: ",summaryFile)
                             let nameSummary = "\(name).summary"
-                            //                        saveFileName(transcript: jsonFile[selectedIndex!], newName: name)
-                            
                             FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameSummary)
                             FileManagerHelper.saveFileName(transcript: summaryFile[selectedIndex!], newName: nameSummary, jsonFile: &summaryFile)
-                            //                        deleteFileName(fileURL: fileURL!, filename: oldName)
-                            //                        jsonFile[selectedIndex ?? -1].name=name
+                            
                             
                             
                             
@@ -93,7 +97,7 @@ struct ManageSummariesView: View {
             } else {
                 HStack{
                     Spacer(minLength: 20)
-                    TextField("Enter your name",text: $name)
+                    TextField("\(selectedSummary.name)",text: $name)
                         .keyboardType(/*@START_MENU_TOKEN@*/.default/*@END_MENU_TOKEN@*/)
                         .onAppear {
                             
@@ -143,10 +147,13 @@ struct ManageSummariesView: View {
     struct EditSummariesView: View {
         
         // MARK: - Properties
-        @Environment (\.dismiss) var dismiss
+        @Environment (\.dismiss) var submit
         @Binding var summaryName: String
         @Binding var summaryContent: String
         @State var initialName:String
+        @State var summaryFile:[textobj] = []
+        var fileManagerHelper:FileManagerHelper
+        var summary:textobj
         // MARK: - Body
  
         var body: some View {
@@ -165,15 +172,21 @@ struct ManageSummariesView: View {
                             .font(.body)
                             .fontWeight(.medium)
                     }
-                    Button("Dismiss") {
-                        dismiss()
-                        
-                        summaryName=""
-                    }
+                   
                     .onChange(of: summaryName) { newName in
                         if !newName.isEmpty {
                             initialName = ""
                         }
+                    }
+                    Button("Submit") {
+                        submit()
+                        let fileURL = FileManagerHelper.getFileURL(forFilename: summary.name)
+                        let nameSummary = "\(summaryName).summary"
+                        //                        saveFileName(transcript: jsonFile[selectedIndex!], newName: name)
+                        print("summary: ",summaryName)
+                        FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameSummary)
+                        FileManagerHelper.saveFileName(transcript: summary , newName: nameSummary, jsonFile: &summaryFile)
+                        summaryName=""
                     }
                     .onDisappear{
                         summaryName=""

@@ -119,10 +119,10 @@ struct ManageTranscriptionsView: View {
                         .tint(.red)
                         
                         Button(action: {
-                            var nextCount = 0
+                            
                             Task {
                                 selectedIndex = index
-                                var summary = await Summarize(transcriptFile[selectedIndex!].content)
+                                let summary = await Summarize(transcriptFile[selectedIndex!].content)
                                 
                                 print("Summary:", summary)
                                 
@@ -146,12 +146,21 @@ struct ManageTranscriptionsView: View {
             .preferredColorScheme(.dark)
         }
         .sheet(item: $selectedTranscript) { selectedTranscript in
-            
+           
             EditTranscriptionsView(
                 transcriptName: $name,
                 transcriptContent: $transcriptContent,
-                initialName: selectedTranscript.name
+                
+                initialName: selectedTranscript.name,
+                transcriptFile:transcriptFile,
+                fileManagerHelper: FileManagerHelper.init(),
+                transcript: selectedTranscript
+                
             )
+            .onDisappear {
+                   // Perform actions when the sheet is dismissed
+                   loadFiles(pathExtension: "transcription")
+               }
             if #available(iOS 16.0, *) {
                 HStack {
                     Spacer(minLength: 20)
@@ -187,7 +196,7 @@ struct ManageTranscriptionsView: View {
             } else {
                 HStack {
                     Spacer(minLength: 20)
-                    TextField("Enter your name",text: $name)
+                    TextField("\(selectedTranscript.name)",text: $name)
                         .keyboardType(/*@START_MENU_TOKEN@*/.default/*@END_MENU_TOKEN@*/)
                         .onAppear {
                             
@@ -297,15 +306,15 @@ private func getMostRecentSummaryFileName() -> String {
     let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
     
     var mostRecentFileURL: URL?
-    var highestCount = 0
+   
     var maxCount = -1
     do {
         let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
        
         for fileURL in fileURLs {
             let fileName = fileURL.lastPathComponent
-            //summary1.summary
-            var c = 0
+      
+       
             let pattern = "summary([0-9]+).summary"
             
             let nameRange = NSRange(
@@ -403,6 +412,9 @@ struct EditTranscriptionsView: View {
     @Binding var transcriptName: String
     @Binding var transcriptContent: String
     @State var initialName:String
+    @State var transcriptFile:[textobj] = []
+    var fileManagerHelper:FileManagerHelper
+    var transcript:textobj
     // MARK: - Body
     var body: some View {
         Spacer(minLength: 30)
@@ -428,10 +440,18 @@ struct EditTranscriptionsView: View {
             Button("Dismiss") {
                 dismiss()
                 
+                let fileURL = FileManagerHelper.getFileURL(forFilename: transcript.name)
+                let nameTranscript = "\(transcriptName).transcription"
+                //                        saveFileName(transcript: jsonFile[selectedIndex!], newName: name)
+                print("transcript: ",transcriptName)
+                FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameTranscript)
+                FileManagerHelper.saveFileName(transcript: transcript, newName: nameTranscript, jsonFile: &transcriptFile)
                 transcriptName=""
+           
             }
             .onDisappear{
                 transcriptName=""
+           
             }
         }
     }

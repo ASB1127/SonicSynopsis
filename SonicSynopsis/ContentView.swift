@@ -35,26 +35,13 @@ class KAudioRecorder: NSObject {
     
     private func recordSetup() {
         
-        var cnt = 0
+        let cnt = 0
         
-        if let fileName = getMostRecentRecordingFileName(){
-            print("fileName = ",fileName)
-            let regex = try! NSRegularExpression(pattern: "\\d+(?=\\.)")
-            if let match = regex.firstMatch(in: fileName, range: NSRange(fileName.startIndex..., in: fileName)) {
-                let digits = String(fileName[Range(match.range, in: fileName)!])
-                print("digits= ",digits)
-                print("\nclass = KAudioRecorder\n func = recordSetup()\n digits: ",digits)
-                cnt=Int(digits) ?? 0
-                cnt+=1
-            }
-            else{
-                print("regex failed")
-            }
-        }
+       
 
       
         print("\nclass = KAudioRecorder\n func = recordSetup()\n cnt: ",cnt)
-        let newFileName = (recordName ?? "sound") + "_\(cnt).m4a"
+        let newFileName = getMostRecentRecordingFileName()
         print("\nclass = KAudioRecorder\n func = recordSetup()\n newFileName = ",newFileName)
         let newVideoName = getDir().appendingPathComponent(newFileName)
       
@@ -224,68 +211,80 @@ class KAudioRecorder: NSObject {
         
         return result
     }
+
     
-//    func getMostRecentRecordingFileName() -> String? {
-//        let fileManager = FileManager.default
-//        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-//       
-//        
-//        do {
-//            let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
-//            
-//            let audioFiles = fileURLs.filter { $0.pathExtension == "m4a" }
-//          
-//            let sortedFiles = audioFiles.sorted { $0.lastPathComponent < $1.lastPathComponent }
-//            print("sortedFiles: ",sortedFiles)
-//            if let mostRecentFile = sortedFiles.last {
-//                print("\nclass = KAudioRecorder\nfunc = getMostRecentRecordingFileName()\nmostRecentFile.lastPathComponent= ",mostRecentFile.lastPathComponent)
-//                return mostRecentFile.lastPathComponent
-//            }
-//        } catch {
-//            print("Error getting file names:", error.localizedDescription)
-//        }
-//        
-//        return nil
-//    }
-    
-    func getMostRecentRecordingFileName() -> String? {
+    func getMostRecentRecordingFileName()-> String {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         
+        var mostRecentFileURL: URL?
+      
+        var maxCount = -1
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
-            
-            let audioFiles = fileURLs.filter { $0.pathExtension == "m4a" }
-            
-            let sortedFiles = audioFiles.sorted { file1, file2 in
-                let components1 = file1.deletingPathExtension().lastPathComponent.components(separatedBy: CharacterSet.decimalDigits.inverted)
-                let components2 = file2.deletingPathExtension().lastPathComponent.components(separatedBy: CharacterSet.decimalDigits.inverted)
-
-                for (component1, component2) in zip(components1, components2) {
-                    if let number1 = Int(component1), let number2 = Int(component2) {
-                        if number1 != number2 {
-                            return number1 < number2
-                        }
-                    } else {
-                        if component1 != component2 {
-                            return component1 < component2
+           
+            for fileURL in fileURLs {
+                let fileName = fileURL.lastPathComponent
+           
+           
+                let pattern = "music_([0-9]+).m4a"
+                
+                let nameRange = NSRange(
+                    fileName.startIndex..<fileName.endIndex,
+                    in: fileName
+                )
+                let regex = try! NSRegularExpression(
+                    pattern: pattern,
+                    options: []
+                )
+                
+                let matches = regex.matches(
+                    in: fileName,
+                    options: [],
+                    range: nameRange
+                )
+                
+                guard let match = matches.first else {
+                    // Handle exception
+                    continue
+                }
+                
+                for rangeIndex in 0..<match.numberOfRanges {
+                    let matchRange = match.range(at: rangeIndex)
+                    
+                    // Ignore matching the entire username string
+                    if matchRange == nameRange { continue }
+                    
+                    // Extract the substring matching the capture group
+                    if let substringRange = Range(matchRange, in: fileName) {
+                        let count = String(fileName[substringRange])
+                        print("getMostRecentSummaryFileName() count=",count, "maxCount=",maxCount)
+                        if Int(count)! > maxCount {
+                            print("maxcount setting to count count=",count)
+                            maxCount = Int(count)!
                         }
                     }
                 }
-
-                // If one filename has more components, it should come first
-                return components1.count < components2.count
             }
             
-            if let mostRecentFile = sortedFiles.last {
-                print("\nclass = KAudioRecorder\nfunc = getMostRecentRecordingFileName()\nmostRecentFile.lastPathComponent= ", mostRecentFile.lastPathComponent)
-                return mostRecentFile.lastPathComponent
-            }
+            // If no valid filenames found, set most recent filename to have count 0
+          
         } catch {
-            print("Error getting file names:", error.localizedDescription)
+            print("Error while enumerating files:", error)
         }
         
-        return nil
+        if maxCount == -1 {
+            print("No valid filenames found")
+            let defaultFileName = "music_1.m4a"
+            mostRecentFileURL = documentsURL.appendingPathComponent(defaultFileName)
+        }else{
+            maxCount+=1
+            print("getMostRecentAudioFileName() maxCount:",maxCount)
+            let defaultFileName = "music_\(maxCount).m4a"
+            mostRecentFileURL = documentsURL.appendingPathComponent(defaultFileName)
+        }
+        
+        return mostRecentFileURL!.lastPathComponent
     }
 
 
@@ -482,20 +481,6 @@ struct ContentView: View {
                                 // EditFileNamesView()
                             }
                             
-                            
-                            
-                            
-                            //                            TextField("Enter name", text: $newNames[index])
-                            //                                .onSubmit {
-                            //                                    print("audios[index] = ",audios[index])
-                            //                                    print("newNames[index] = ", newNames[index])
-                            //                                    let newName = "\(newNames[index]).m4a"
-                            //                                    print("newName = ",newName)
-                            //                                    let oldName = audios[index].lastPathComponent
-                            //                                    print("oldName = ",oldName)
-                            //                                    recorder.changeRecordingFileName(oldName: oldName , newName: newName)
-                            //
-                            //                                }
                             .swipeActions(allowsFullSwipe: false) {
                                 Button {
                                     let audioURL = m4aAudios[index]
@@ -572,26 +557,27 @@ struct ContentView: View {
                         
                         
                         .sheet(item: $selectedItem) { selectedItem in
-                            // Define oldName here
-                            let oldName = selectedItem.name
                             
+                            EditFileNamesView(audioName: $newName,initialName: m4aAudios[selectedAudioIndex!].lastPathComponent, recorder: recorder)
                             VStack {
                                 if #available(iOS 16.0, *) {
-                                    TextField("Enter your name", text: $newName)
-                                        .keyboardType(.default)
-                                        .presentationDetents([.medium, .large])
-                                } else {
-                                    TextField("Enter your name", text: $newName)
-                                        .keyboardType(.default)
-                                }
-                                EditFileNamesView(audioName: $newName)
-                                    .onSubmit {
-                                        
-                                        print("oldName = ",oldName)
-                                        print("newName = ",newName)
-                                        recorder.changeRecordingFileName(oldName: oldName, newName: newName)
-                                        // users[selectedUserIndex ?? -1].name = name
+                                   
+                                    HStack{
+                                        Spacer(minLength: 30)
+                                        TextField("Enter your name", text: $newName)
+                                            .keyboardType(.default)
+                                            .presentationDetents([.medium, .large])
                                     }
+                                } else {
+                                 
+                                    HStack{
+                                        Spacer(minLength: 30)
+                                        TextField("Enter your name", text: $newName)
+                                            .keyboardType(.default)
+                                    }
+                                }
+                               
+                                   
                             }
                         }
                         
@@ -833,15 +819,15 @@ struct ContentView: View {
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         
         var mostRecentFileURL: URL?
-        var highestCount = 0
+  
         var maxCount = -1
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
            
             for fileURL in fileURLs {
                 let fileName = fileURL.lastPathComponent
-                //summary1.summary
-                var c = 0
+                
+             
                 let pattern = "transcript([0-9]+).transcription"
                 
                 let nameRange = NSRange(
