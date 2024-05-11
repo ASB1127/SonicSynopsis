@@ -377,7 +377,7 @@ struct Audio:Identifiable{
     
 
     
-var transcription:String?
+var summary:String?
 struct ContentView: View {
     @State private var session: AVAudioSession!
     @State private var recordStop = "Record"
@@ -505,15 +505,10 @@ struct ContentView: View {
                                         if let transcription = transcription {
                                             print("Transcription:", transcription)
                                             
-                                            let recentFileName = getMostRecentTranscriptionFileName()
+                                            let recentFileName = getMostRecentTranscriptFileName()
                                             print("recentFileName: ",recentFileName)
-                                            let numbers = recentFileName.components(separatedBy: CharacterSet.decimalDigits.inverted)
-                                                .joined()
-                                            print("numbers: ",numbers)
-                                            var cnt = Int(numbers) ?? 0
-                                            cnt += 1
-                                            let fileName = "transcription\(cnt).json"
-                                            saveTranscriptionToFile(transcription: transcription, fileName: fileName)
+                                            
+                                            saveTranscriptionToFile(transcription: transcription, fileName: recentFileName)
                                             
                                         } else {
                                             print("Transcription is nil.")
@@ -778,9 +773,9 @@ struct ContentView: View {
             }
             if result.isFinal {
                 // print(result.bestTranscription.formattedString)
-                transcription = result.bestTranscription.formattedString
+                summary = result.bestTranscription.formattedString
                 //print("Transcription is final:", transcription ?? "")
-                completion(transcription)
+                completion(summary)
                 //return result.bestTranscription.formattedString
             }
             
@@ -831,63 +826,81 @@ struct ContentView: View {
             print("Error saving data: \(error)")
         }
         
-        //        if FileManager.default.fileExists(atPath: fileURL.path) {
-        //            // Read the data from the file
-        //            do {
-        //                let data = try Data(contentsOf: fileURL)
-        //
-        //                // Decode the data into your struct
-        //                let transcriptFinal = try JSONDecoder().decode(transcriptionObj.self, from: data)
-        //
-        //                // Now you have the struct instance
-        //                print("Retrieved transcript:", transcript)
-        //            } catch {
-        //                print("Error reading or decoding data:", error)
-        //            }
-        //        } else {
-        //            print("File does not exist at path:", fileURL.path)
-        //        }
-        //        do {
-        //                try transcription.write(to: fileURL, atomically: true, encoding: .utf8)
-        //                print("Transcription saved to:", fileURL)
-        //            } catch {
-        //                print("Error saving transcription:", error.localizedDescription)
-        //            }
     }
-    private func getMostRecentTranscriptionFileName() -> String {
+   
+    private func getMostRecentTranscriptFileName() -> String {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         
         var mostRecentFileURL: URL?
         var highestCount = 0
-        
+        var maxCount = -1
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
+           
             for fileURL in fileURLs {
                 let fileName = fileURL.lastPathComponent
+                //summary1.summary
+                var c = 0
+                let pattern = "transcript([0-9]+).transcription"
                 
-                // Check if the filename adheres to the expected pattern and contains a number
-                if fileName.hasPrefix("transcription") && fileName.hasSuffix(".json") {
-                    let countString = fileName.replacingOccurrences(of: "transcription", with: "").replacingOccurrences(of: ".json", with: "")
-                    if let count = Int(countString), count > highestCount {
-                        highestCount = count
-                        mostRecentFileURL = fileURL
+                let nameRange = NSRange(
+                    fileName.startIndex..<fileName.endIndex,
+                    in: fileName
+                )
+                let regex = try! NSRegularExpression(
+                    pattern: pattern,
+                    options: []
+                )
+                
+                let matches = regex.matches(
+                    in: fileName,
+                    options: [],
+                    range: nameRange
+                )
+                
+                guard let match = matches.first else {
+                    // Handle exception
+                    continue
+                }
+                
+                for rangeIndex in 0..<match.numberOfRanges {
+                    let matchRange = match.range(at: rangeIndex)
+                    
+                    // Ignore matching the entire username string
+                    if matchRange == nameRange { continue }
+                    
+                    // Extract the substring matching the capture group
+                    if let substringRange = Range(matchRange, in: fileName) {
+                        let count = String(fileName[substringRange])
+                        print("getMostRecentTranscriptFileName() count=",count, "maxCount=",maxCount)
+                        if Int(count)! > maxCount {
+                            print("maxcount setting to count count=",count)
+                            maxCount = Int(count)!
+                        }
                     }
                 }
             }
             
             // If no valid filenames found, set most recent filename to have count 0
-            if mostRecentFileURL == nil {
-                let defaultFileName = "transcription0.json"
-                mostRecentFileURL = documentsURL.appendingPathComponent(defaultFileName)
-            }
+          
         } catch {
             print("Error while enumerating files:", error)
         }
         
+        if maxCount == -1 {
+            print("No valid filenames found")
+            let defaultFileName = "transcript1.transcription"
+            mostRecentFileURL = documentsURL.appendingPathComponent(defaultFileName)
+        }else{
+            maxCount+=1
+            print("getMostRecentTranscriptFileName() maxCount:",maxCount)
+            let defaultFileName = "transcript\(maxCount).transcription"
+            mostRecentFileURL = documentsURL.appendingPathComponent(defaultFileName)
+        }
+        
         return mostRecentFileURL!.lastPathComponent
     }
-
 }
 
 
