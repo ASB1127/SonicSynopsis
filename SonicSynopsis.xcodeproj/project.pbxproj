@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		FA3D1A522BCF21C10014896B /* ManageTranscriptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3D1A512BCF21C10014896B /* ManageTranscriptionsView.swift */; };
+		FAA8D40B2BEF120200FF9C02 /* ManageSummariesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA8D40A2BEF120200FF9C02 /* ManageSummariesView.swift */; };
 		FAA960582BAD2402001E62A8 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = FAA960572BAD2402001E62A8 /* GoogleGenerativeAI */; };
 		FAA9605A2BAD2515001E62A8 /* GenerativeAI-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FAA960592BAD2515001E62A8 /* GenerativeAI-Info.plist */; };
 		FAA9605D2BADA43E001E62A8 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = FAA9605C2BADA43E001E62A8 /* Algorithms */; };
@@ -21,6 +22,7 @@
 
 /* Begin PBXFileReference section */
 		FA3D1A512BCF21C10014896B /* ManageTranscriptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageTranscriptionsView.swift; sourceTree = "<group>"; };
+		FAA8D40A2BEF120200FF9C02 /* ManageSummariesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageSummariesView.swift; sourceTree = "<group>"; };
 		FAA960592BAD2515001E62A8 /* GenerativeAI-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GenerativeAI-Info.plist"; sourceTree = "<group>"; };
 		FAC6C3A62BE2C17400D196E4 /* EditFileNamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFileNamesView.swift; sourceTree = "<group>"; };
 		FAF483B02BD210950066CEC6 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 				FAFEE9A52B9FD10000B8A7A6 /* ContentView.swift */,
 				FAF483B02BD210950066CEC6 /* Router.swift */,
 				FA3D1A512BCF21C10014896B /* ManageTranscriptionsView.swift */,
+				FAA8D40A2BEF120200FF9C02 /* ManageSummariesView.swift */,
 				FAC6C3A62BE2C17400D196E4 /* EditFileNamesView.swift */,
 				FAFEE9A72B9FD10300B8A7A6 /* Assets.xcassets */,
 				FAFEE9A92B9FD10300B8A7A6 /* Preview Content */,
@@ -168,6 +171,7 @@
 				FA3D1A522BCF21C10014896B /* ManageTranscriptionsView.swift in Sources */,
 				FAFEE9A62B9FD10000B8A7A6 /* ContentView.swift in Sources */,
 				FAFEE9A42B9FD10000B8A7A6 /* SonicSynopsisApp.swift in Sources */,
+				FAA8D40B2BEF120200FF9C02 /* ManageSummariesView.swift in Sources */,
 				FAC6C3A72BE2C17400D196E4 /* EditFileNamesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

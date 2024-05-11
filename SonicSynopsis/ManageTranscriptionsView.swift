@@ -7,6 +7,80 @@
 
 import SwiftUI
 import GoogleGenerativeAI
+import Foundation
+
+class FileManagerHelper {
+    
+    // MARK: - Change File Name
+    
+    static func changeFileName(fileURL: URL, newName: String) {
+        let fileManager = FileManager.default
+        let directoryURL = fileURL.deletingLastPathComponent()
+        let newFileURL = directoryURL.appendingPathComponent(newName)
+        
+        do {
+            try fileManager.moveItem(at: fileURL, to: newFileURL)
+            print("File name changed successfully.")
+        } catch {
+            print("Error renaming file:", error.localizedDescription)
+        }
+    }
+    
+    // MARK: - Get File URL
+    
+    static func getFileURL(forFilename filename: String) -> URL? {
+        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        
+        do {
+            let fileURLs = try FileManager.default.contentsOfDirectory(at: documentsDirectory, includingPropertiesForKeys: nil)
+            
+            for fileURL in fileURLs {
+                if fileURL.lastPathComponent == filename {
+                    return fileURL
+                }
+            }
+        } catch {
+            print("Error while fetching filenames: \(error.localizedDescription)")
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Save File Name
+    
+    static func saveFileName(transcript: textobj, newName: String, jsonFile: inout [textobj]) {
+        guard let index = jsonFile.firstIndex(where: { $0.id == transcript.id }) else { return }
+        jsonFile[index].name = newName
+        
+        do {
+            let jsonEncoder = JSONEncoder()
+            let jsonData = try jsonEncoder.encode(jsonFile[index])
+            
+            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsDirectory.appendingPathComponent("\(newName)")
+            try jsonData.write(to: fileURL)
+        } catch {
+            print("Error saving filename:", error.localizedDescription)
+        }
+    }
+    
+    // MARK: - Delete File
+    
+    static func deleteTextFile(fileName: String) {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = documentsURL.appendingPathComponent(fileName)
+        
+        do {
+            try fileManager.removeItem(at: fileURL)
+            print("File \(fileName) deleted successfully.")
+        } catch {
+            print("Error deleting file \(fileName):", error.localizedDescription)
+        }
+    }
+}
+
+
 
 struct ManageTranscriptionsView: View {
     @State private var transcript:textobj? = nil
@@ -36,8 +110,8 @@ struct ManageTranscriptionsView: View {
                     .swipeActions(allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             selectedIndex = index
-                         
-                            deleteTextFile(fileName:jsonFile[selectedIndex ?? -1].name )
+                           
+                            FileManagerHelper.deleteTextFile(fileName:jsonFile[selectedIndex ?? -1].name )
                             loadFiles()
                         } label: {
                             Label("Delete", systemImage: "trash.fill")
@@ -78,7 +152,7 @@ struct ManageTranscriptionsView: View {
                         transcriptContent = selectedTranscript.content
                     }
                     .onSubmit{
-                        let fileURL = getFileURL(forFilename: jsonFile[selectedIndex ?? -1].name)
+                        let fileURL = FileManagerHelper.getFileURL(forFilename: jsonFile[selectedIndex ?? -1].name)
                         
                         print("newName: ",name)
                        
@@ -87,8 +161,8 @@ struct ManageTranscriptionsView: View {
                         let nameJson = "\(name).json"
 //                        saveFileName(transcript: jsonFile[selectedIndex!], newName: name)
                      
-                        changeFileName(fileURL: fileURL!, newName: nameJson)
-                        saveFileName(transcript: jsonFile[selectedIndex!], newName: nameJson)
+                        FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameJson)
+                        FileManagerHelper.saveFileName(transcript: jsonFile[selectedIndex!], newName: nameJson, jsonFile: &jsonFile)
 //                        deleteFileName(fileURL: fileURL!, filename: oldName)
 //                        jsonFile[selectedIndex ?? -1].name=name
                     
@@ -106,13 +180,13 @@ struct ManageTranscriptionsView: View {
                         transcriptContent = selectedTranscript.content
                     }
                     .onSubmit{
-                        let fileURL = getFileURL(forFilename: jsonFile[selectedIndex ?? -1].name)
+                        let fileURL = FileManagerHelper.getFileURL(forFilename: jsonFile[selectedIndex ?? -1].name)
                         
                         print("fileURL: ",fileURL!)
                         print("name: ",jsonFile[selectedIndex ?? -1].name)
                         jsonFile[selectedIndex ?? -1].name=name
                         
-                        changeFileName(fileURL: fileURL!, newName: name)
+                        FileManagerHelper.changeFileName(fileURL: fileURL!, newName: name)
                         
                     }
             }
@@ -141,18 +215,7 @@ struct ManageTranscriptionsView: View {
         }
     }
     
-    private func deleteTextFile(fileName: String) {
-        let fileManager = FileManager.default
-        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let fileURL = documentsURL.appendingPathComponent(fileName)
-        
-        do {
-            try fileManager.removeItem(at: fileURL)
-            print("File \(fileName) deleted successfully.")
-        } catch {
-            print("Error deleting file \(fileName):", error.localizedDescription)
-        }
-    }
+   
 
 
         
@@ -181,25 +244,7 @@ struct ManageTranscriptionsView: View {
     
     }
 
-func getFileURL(forFilename filename: String) -> URL? {
-    let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    
-    do {
-        let fileURLs = try FileManager.default.contentsOfDirectory(at: documentsDirectory, includingPropertiesForKeys: nil)
-      
-        for fileURL in fileURLs {
-            print("\(filename)")
-            print("fileURL.lastPathComponent: ",fileURL.lastPathComponent)
-            if fileURL.lastPathComponent == "\(filename)" {
-                return fileURL
-            }
-        }
-    } catch {
-        print("Error while fetching filenames: \(error.localizedDescription)")
-    }
-    
-    return nil
-}
+
 
 private func Summarize(_ summarize:String) async{
 
@@ -273,73 +318,8 @@ struct NextView: View {
 
 
 
-  
-
-//private func getTranscriptionStructArray(fileURLs:[URL])->Array<transcriptionObj>
-//{
-//    var transcriptionArray:[transcriptionObj] = []
-//    for i in fileURLs.indices {
-//        transcriptionArray.append(getTranscriptionStruct(fileURL: fileURLs[i]))
-//    }
-//    return transcriptionArray
-//}
-//private func getTranscriptionStruct(fileURL:URL)-> transcriptionObj{
-//    var transcriptFinal = transcriptionObj(name: "", content: "")
-//    if FileManager.default.fileExists(atPath: fileURL.path) {
-//                       do {
-//                           let data = try Data(contentsOf: fileURL)
-//                           
-//                          
-//                           
-//                           transcriptFinal = try JSONDecoder().decode(transcriptionObj.self, from: data)
-//                           
-//                           print("transcriptFinal:\n"+"Name: "+transcriptFinal.name+"\nContent: "+transcriptFinal.content)
-//                          
-//                       } catch {
-//                           do{
-//                               let contents = try String(contentsOf: fileURL)
-//                               let fileName = fileURL.lastPathComponent
-//                              transcriptFinal = transcriptionObj.init(name: fileName, content: contents)
-//                           }
-//                           catch{
-//                               print("Error reading or decoding data:", error)
-//                           }
-//                           
-////                           print("Error reading or decoding data:", error)
-//                       }
-//                   } else {
-//                       print("File does not exist at path:", fileURL.path)
-//                   }
-//                   
-//    return transcriptFinal
-//    
-//}
-
-
-
-private func changeFileName(fileURL:URL,newName:String){
-      let fileManager = FileManager.default
-      let directoryURL = fileURL.deletingLastPathComponent()
-     
-      let newFileURL = directoryURL.appendingPathComponent(newName)
-      
-      do {
-          try fileManager.moveItem(at: fileURL, to: newFileURL)
-          print("File name changed successfully.")
-          
-      } catch {
-          print("Error renaming file:", error.localizedDescription)
-      }
-    
-}
 
 
 
 
-private func fileURL(forFileName fileName: String) -> URL? {
-    let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-    return documentsDirectory?.appendingPathComponent(fileName)
-}
-
-        
         

@@ -685,9 +685,7 @@ struct ContentView: View {
             .tag(1)
             
             NavigationView{
-                Text("Manage Summaries")
-                    .font(.title)
-                    .navigationTitle(Text("2"))
+                ManageSummariesView()
                 
             }
             
