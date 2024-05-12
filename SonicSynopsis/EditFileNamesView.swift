@@ -15,6 +15,8 @@ struct EditFileNamesView: View {
     @Binding var audioName: String
     @State var initialName: String
     var recorder:KAudioRecorder
+    var m4audios:[URL] = []
+    var index:Int
     // MARK: - Body
     var body: some View {
             Spacer(minLength: 20)
@@ -23,20 +25,33 @@ struct EditFileNamesView: View {
                     Text("\(initialName)\(audioName)")
                         .font(.title)
                         .fontWeight(.bold)
+                        .onAppear {
+                            
+                          
+                        }
                        
                 }
+                
                 .padding(.horizontal)
                 Spacer()
                 Button("Dismiss") {
                     dismiss()
-                    
+                    var oldName = String(m4audios[index].lastPathComponent)
+                    oldName = "\(oldName)"
+                    let newName = "\(audioName).m4a"
+                    recorder.changeRecordingFileName(oldName: oldName, newName: newName)
                     audioName=""
                 }
                 Spacer(minLength: 5)
                 .onChange(of: audioName) { newName in
                     if !newName.isEmpty {
+                       
+//                        m4audios[index].lastPathComponent = "\(newName).m4a"
+                       
+            
+                     
+                        
                         initialName = ""
-                        recorder.changeRecordingFileName(oldName: initialName, newName: audioName)
                     }
                     
                 }

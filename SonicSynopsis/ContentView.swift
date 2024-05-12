@@ -383,27 +383,19 @@ struct ContentView: View {
     @State private var alert = false
     @State private var timeElapsed: TimeInterval = 0
     @State private var isRunning = false
-    
     @State private var audios: [URL] = []
     @State private var audioPlayer: AVAudioPlayer?
     @State private var recording = false
     @State private var newName: String = ""
-    @State private var isEditingName = false
-    //    @State private var selectedAudioIndex: Int?
-    //    @State private var newNames: [String] = []
-    @State private var fileNames: [String] = []
-    //@State private var selectedItem: Int?
+ 
     @State private var selectedIndex: Int? = nil
-    //@State var selectedIndex: Int = 0
     @State private var audioNames: [Audio] = []
     @State private var selectedAudioIndex: Int?
     @State private var selectedItem: Audio? = nil
     
-    @State private var audio:Audio? = nil
-    @State var oldName = ""
-    //    audioNames = audios.enumerated().map { index, url in
-    //        Audio(index: index, name: url.lastPathComponent)
-    //    }
+  
+ 
+ 
     
     
     var recorder = KAudioRecorder.shared
@@ -458,7 +450,6 @@ struct ContentView: View {
                                     if index == selectedIndex {
                                         
                                         Text(m4aAudios[index].lastPathComponent)
-                                            .background(.red)
                                         Spacer()
                                         
                                     } else {
@@ -478,7 +469,7 @@ struct ContentView: View {
                                 selectedItem = Audio(index: index, name: m4aAudios[index].lastPathComponent)
                                 print("item: ",selectedItem ?? Audio(index: 0,name: "none"))
                                 print("oldName: ",selectedItem?.name ?? "")
-                                // EditFileNamesView()
+                            
                             }
                             
                             .swipeActions(allowsFullSwipe: false) {
@@ -558,8 +549,13 @@ struct ContentView: View {
                         
                         .sheet(item: $selectedItem) { selectedItem in
                             
-                            EditFileNamesView(audioName: $newName,initialName: m4aAudios[selectedAudioIndex!].lastPathComponent, recorder: recorder)
+                            EditFileNamesView(audioName: $newName,initialName: m4aAudios[selectedAudioIndex!].lastPathComponent, recorder: recorder,m4audios: m4aAudios,index: selectedItem.index)
+                                .onDisappear {
+                                       // Perform actions when the sheet is dismissed
+                                      getAudios()
+                                   }
                             VStack {
+                                
                                 if #available(iOS 16.0, *) {
                                    
                                     HStack{
@@ -568,12 +564,30 @@ struct ContentView: View {
                                             .keyboardType(.default)
                                             .presentationDetents([.medium, .large])
                                     }
+                                    .onSubmit{
+                                        let m4audios = audios.filter { $0.pathExtension == "m4a" }
+                                        var oldName = String(m4audios[selectedIndex!].lastPathComponent)
+                                        oldName = "\(oldName)"
+                                        var finalName = "\(newName).m4a"
+                                        recorder.changeRecordingFileName(oldName: oldName, newName: finalName)
+                                        finalName=""
+                                       getAudios()
+                                    }
                                 } else {
                                  
                                     HStack{
                                         Spacer(minLength: 30)
                                         TextField("Enter your name", text: $newName)
                                             .keyboardType(.default)
+                                    }
+                                    .onSubmit{
+                                        let m4audios = audios.filter { $0.pathExtension == "m4a" }
+                                        var oldName = String(m4audios[selectedIndex!].lastPathComponent)
+                                        oldName = "\(oldName)"
+                                        var finalName = "\(newName).m4a"
+                                        recorder.changeRecordingFileName(oldName: oldName, newName: finalName)
+                                        finalName=""
+                                       getAudios()
                                     }
                                 }
                                
@@ -887,7 +901,13 @@ struct ContentView: View {
         
         return mostRecentFileURL!.lastPathComponent
     }
+    
+    
+    
+    
 }
+
+
 
 
 
