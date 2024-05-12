@@ -11,7 +11,7 @@ import AVFAudio
 struct EditFileNamesView: View {
     
     // MARK: - Properties
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) var Submit
     @Binding var audioName: String
     @State var initialName: String
     var recorder:KAudioRecorder
@@ -34,8 +34,8 @@ struct EditFileNamesView: View {
                 
                 .padding(.horizontal)
                 Spacer()
-                Button("Dismiss") {
-                    dismiss()
+                Button("Submit") {
+                    Submit()
                     var oldName = String(m4audios[index].lastPathComponent)
                     oldName = "\(oldName)"
                     let newName = "\(audioName).m4a"
