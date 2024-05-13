@@ -10,7 +10,7 @@ import Speech
 
 
 
-
+//Class KAudioRecorder Source From: https://github.com/KenanAtmaca/KAudioRecorder
 class KAudioRecorder: NSObject {
 
     
@@ -338,6 +338,57 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
     }
 }
 
+extension URL: Comparable {
+    public static func < (lhs: URL, rhs: URL) -> Bool {
+        if(lhs.containsNumber() == false && rhs.containsNumber()==false && lhs.absoluteString != rhs.absoluteString)
+        {
+            print("lhs < rhs")
+            print("lhs:",lhs.absoluteString)
+            print("rhs:",rhs.absoluteString)
+            return lhs.absoluteString < rhs.absoluteString
+        }
+        else {
+            let lhsNumber = lhs.extractNumber() ?? 0
+            let rhsNumber = rhs.extractNumber() ?? 0
+            return lhsNumber < rhsNumber
+        }
+    }
+    
+    func containsNumber() -> Bool {
+            // Define the regular expression pattern to match any sequence of digits
+            let pattern = "\\d+"
+            
+            do {
+                // Create a regular expression object
+                let regex = try NSRegularExpression(pattern: pattern, options: [])
+                
+                // Match the regular expression in the absolute string
+                return regex.firstMatch(in: absoluteString, options: [], range: NSRange(location: 0, length: absoluteString.count)) != nil
+            } catch {
+                // Error handling for invalid regular expression
+                print("Error creating regex: \(error)")
+                return false
+            }
+        }
+    
+    public func extractNumber() -> Int? {
+        guard let components = NSURLComponents(url: self, resolvingAgainstBaseURL: true),
+                      let path = components.path else {
+                    return nil
+                }
+                
+                // Extract the last path component
+                let lastPathComponent = NSString(string: path).lastPathComponent
+                
+                // Extract digits from the last path component
+                let digits = lastPathComponent.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+                
+                // Convert the extracted digits to an integer
+                return Int(digits)
+            }
+    
+}
+
 
 class SharedTranscript: ObservableObject {
    
@@ -350,7 +401,7 @@ class SharedTranscript: ObservableObject {
 
 
 
-struct textobj:Codable, Identifiable{
+struct textobj:Codable, Identifiable,Comparable{
 var id = UUID()
 var name: String
 var content: String
@@ -364,7 +415,34 @@ enum CodingKeys: String, CodingKey {
             case name
             case content
         }
+    
+    static func < (lhs: textobj, rhs: textobj) -> Bool {
+        if (lhs.containsNumber() == false && rhs.containsNumber() && lhs.name != rhs.name) {
+               return lhs.name < rhs.name
+           } else {
+            
+               let lhsNumber = lhs.extractNumber()
+               let rhsNumber = rhs.extractNumber()
+               return lhsNumber < rhsNumber
+           }
+       }
+    
+    private func containsNumber() -> Bool {
+        let range = NSRange(location: 0, length: name.utf16.count)
+        let regex = try! NSRegularExpression(pattern: "\\d")
+        return regex.firstMatch(in: name, options: [], range: range) != nil
+    }
+
+    
+    static func == (lhs: textobj, rhs: textobj) -> Bool {
+            return lhs.name == rhs.name && lhs.content == rhs.content
+        }
+    private func extractNumber() -> Int {
+           let components = name.components(separatedBy: CharacterSet.decimalDigits.inverted)
+           return components.compactMap { Int($0) }.first ?? 0
+       }
 }
+
 
 struct Audio:Identifiable{
     let id = UUID()
@@ -737,6 +815,7 @@ struct ContentView: View {
             for i in result {
                 audios.append(i)
             }
+            audios = audios.sorted()
         } catch {
             print("Error getting audios: \(error.localizedDescription)")
         }

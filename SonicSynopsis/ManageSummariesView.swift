@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ManageSummariesView: View {
     @State private var summary:textobj? = nil
-    
     @State private var summaryFile: [textobj] = []
     @State var name:String = ""
     @State private var selectedIndex:Int?
@@ -138,6 +137,7 @@ struct ManageSummariesView: View {
                     }
                     print("loadFiles summaryFile: ",summaryFile)
                     summaryFile = summaryFile.map { $0 }
+                    summaryFile = summaryFile.sorted()
                 }
             } catch {
                 print("Error while fetching filenames: \(error.localizedDescription)")

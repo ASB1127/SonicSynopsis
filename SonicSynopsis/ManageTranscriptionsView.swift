@@ -142,6 +142,7 @@ struct ManageTranscriptionsView: View {
             .onAppear {
                 // Load filenames and transcripts
                 loadFiles(pathExtension: "transcription")
+                
             }
             .preferredColorScheme(.dark)
         }
@@ -229,7 +230,6 @@ struct ManageTranscriptionsView: View {
         
         do {
             let fileURLs = try FileManager.default.contentsOfDirectory(at: documentsDirectory, includingPropertiesForKeys: nil)
-            //                print("loadFiles: fileURLs",fileURLs)
             let jsonFileURLs = fileURLs.filter { $0.pathExtension == pathExtension }
             if !jsonFileURLs.isEmpty {
                 transcriptFile = jsonFileURLs.compactMap { url in
@@ -237,7 +237,14 @@ struct ManageTranscriptionsView: View {
                     guard let transcript = try? JSONDecoder().decode(textobj.self, from: data) else { return nil }
                     return transcript
                 }
-                transcriptFile = transcriptFile.map { $0 }
+                
+                print("transcriptFile[len-1]",transcriptFile[transcriptFile.count-1].name)
+                print("transcriptFIle[len-2]")
+//                if(transcriptFile[transcriptFile.count-1].name != transcriptFile[transcriptFile.count-2].name)
+//                {
+                    transcriptFile = transcriptFile.map { $0 }
+//                }
+                transcriptFile = transcriptFile.sorted()
             }
         } catch {
             print("Error while fetching filenames: \(error.localizedDescription)")
