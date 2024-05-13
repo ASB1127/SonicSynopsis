@@ -93,7 +93,7 @@ struct ManageTranscriptionsView: View {
     @State var transcriptContent:String = ""
     @State private var summary: textobj? = nil
     @Binding var shouldRedrawTranscriptionView: Bool
-
+    @Binding var shouldRedrawSummaryView:Bool
   
     
     var body: some View {
@@ -105,7 +105,7 @@ struct ManageTranscriptionsView: View {
                     
                     HStack {
                         Text(transcriptFile[index].name)
-                        Spacer()
+                        Spacer(minLength: 2)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -135,6 +135,7 @@ struct ManageTranscriptionsView: View {
                                 let recentFileName = getMostRecentSummaryFileName()
                                 print("recentFileName: ", recentFileName)
                                 saveSummaryToFile(summary: summary, fileName: recentFileName)
+                                shouldRedrawSummaryView = true
                             }
                             
                             
@@ -295,6 +296,7 @@ private func saveSummaryToFile(summary: String, fileName:String){
     do{
         
         data = try JSONEncoder().encode(summary)
+        
         
     }
     catch{

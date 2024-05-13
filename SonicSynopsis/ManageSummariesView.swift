@@ -14,7 +14,8 @@ struct ManageSummariesView: View {
     @State private var selectedIndex:Int?
     @State private var selectedSummary: textobj? = nil
     @State var summaryContent:String = ""
-    @Binding var shouldRedrawSummaryView: Bool
+    @Binding var shouldRedrawSummaryView:Bool
+    
     var body: some View {
         VStack {
             List {

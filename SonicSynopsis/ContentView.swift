@@ -472,6 +472,7 @@ struct ContentView: View {
     @State private var selectedItem: Audio? = nil
     @State private var shouldRedrawTranscriptView = false
     @State private var shouldRedrawSummaryView = false
+  
  
  
     
@@ -677,7 +678,7 @@ struct ContentView: View {
                     }
                     
                     Spacer(minLength: 120)
-                
+                   
                     
 
                     Text("\(timeString(time: timeElapsed))")
@@ -741,7 +742,7 @@ struct ContentView: View {
             .tag(0)
             
             NavigationView{
-                ManageTranscriptionsView( shouldRedrawTranscriptionView: $shouldRedrawTranscriptView)
+                ManageTranscriptionsView( shouldRedrawTranscriptionView: $shouldRedrawTranscriptView, shouldRedrawSummaryView: $shouldRedrawSummaryView)
             }
             
             .tabItem{
@@ -750,7 +751,7 @@ struct ContentView: View {
             .tag(1)
             
             NavigationView{
-                ManageSummariesView(shouldRedrawSummaryView:$shouldRedrawSummaryView )
+                ManageSummariesView(shouldRedrawSummaryView: $shouldRedrawSummaryView)
                 
             }
             
