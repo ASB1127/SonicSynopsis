@@ -11,7 +11,7 @@ import Foundation
 
 class FileManagerHelper {
     
-    // MARK: - Change File Name
+
     
     static func changeFileName(fileURL: URL, newName: String) {
         let fileManager = FileManager.default
@@ -26,7 +26,7 @@ class FileManagerHelper {
         }
     }
     
-    // MARK: - Get File URL
+  
     
     static func getFileURL(forFilename filename: String) -> URL? {
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -46,7 +46,7 @@ class FileManagerHelper {
         return nil
     }
     
-    // MARK: - Save File Name
+
     
     static func saveFileName(transcript: textobj, newName: String, jsonFile: inout [textobj]) {
         guard let index = jsonFile.firstIndex(where: { $0.id == transcript.id }) else { return }
@@ -64,7 +64,7 @@ class FileManagerHelper {
         }
     }
     
-    // MARK: - Delete File
+
     
     static func deleteTextFile(fileName: String) {
         let fileManager = FileManager.default
@@ -92,11 +92,17 @@ struct ManageTranscriptionsView: View {
     @State private var selectedTranscript: textobj? = nil
     @State var transcriptContent:String = ""
     @State private var summary: textobj? = nil
+    @Binding var shouldRedrawTranscriptionView: Bool
+
+  
     
     var body: some View {
+       
         VStack {
+            
             List {
                 ForEach(transcriptFile.indices, id: \.self) { index in
+                    
                     HStack {
                         Text(transcriptFile[index].name)
                         Spacer()
@@ -144,6 +150,12 @@ struct ManageTranscriptionsView: View {
                 loadFiles(pathExtension: "transcription")
                 
             }
+            .onChange(of: shouldRedrawTranscriptionView) { newValue in
+                            if newValue {
+                                loadFiles(pathExtension: "transcription")
+                                shouldRedrawTranscriptionView = false
+                            }
+                        }
             .preferredColorScheme(.dark)
         }
         .sheet(item: $selectedTranscript) { selectedTranscript in
@@ -162,6 +174,7 @@ struct ManageTranscriptionsView: View {
                    // Perform actions when the sheet is dismissed
                    loadFiles(pathExtension: "transcription")
                }
+            
             if #available(iOS 16.0, *) {
                 HStack {
                     Spacer(minLength: 20)
@@ -282,10 +295,7 @@ private func saveSummaryToFile(summary: String, fileName:String){
     do{
         
         data = try JSONEncoder().encode(summary)
-        //        print("Encoded JSON data:", String(data: data, encoding: .utf8) ?? "Failed to decode data")
-        //DEBUG comment these two lines
-        //        let summary = try JSONDecoder().decode(textobj.self, from: data)
-        //        print("\nDecoded Transcript:", summary)
+        
     }
     catch{
         

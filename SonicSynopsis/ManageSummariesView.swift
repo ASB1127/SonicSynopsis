@@ -14,10 +14,12 @@ struct ManageSummariesView: View {
     @State private var selectedIndex:Int?
     @State private var selectedSummary: textobj? = nil
     @State var summaryContent:String = ""
+    @Binding var shouldRedrawSummaryView: Bool
     var body: some View {
         VStack {
             List {
                 ForEach(summaryFile.indices, id: \.self) { index in
+                    
                     HStack {
                         Text(summaryFile[index].name)
                         Spacer()
@@ -47,6 +49,12 @@ struct ManageSummariesView: View {
                 // Load filenames and transcripts
                 loadFiles(pathExtension: "summary")
             }
+            .onChange(of: shouldRedrawSummaryView) { newValue in
+                            if newValue {
+                                loadFiles(pathExtension: "summary")
+                                shouldRedrawSummaryView = false
+                            }
+                        }
             .preferredColorScheme(.dark)
         }
         .sheet(item: $selectedSummary) { selectedSummary in

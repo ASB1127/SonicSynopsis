@@ -465,13 +465,13 @@ struct ContentView: View {
     @State private var audioPlayer: AVAudioPlayer?
     @State private var recording = false
     @State private var newName: String = ""
- 
+  
     @State private var selectedIndex: Int? = nil
     @State private var audioNames: [Audio] = []
     @State private var selectedAudioIndex: Int?
     @State private var selectedItem: Audio? = nil
-    
-  
+    @State private var shouldRedrawTranscriptView = false
+    @State private var shouldRedrawSummaryView = false
  
  
     
@@ -677,16 +677,9 @@ struct ContentView: View {
                     }
                     
                     Spacer(minLength: 120)
-                    let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
+                
                     
-//                    if(selectedIndex ?? 0<m4aAudios.count)
-//                    {
-//                        Text("Selected audio: \(m4aAudios[selectedIndex ?? 0].lastPathComponent)")
-//                    }
-//                    
-                    
-                    
-//                    Spacer(minLength: 200)
+
                     Text("\(timeString(time: timeElapsed))")
                         .font(.system(size: 75))
                         .fontWeight(.light)
@@ -748,7 +741,7 @@ struct ContentView: View {
             .tag(0)
             
             NavigationView{
-                ManageTranscriptionsView()
+                ManageTranscriptionsView( shouldRedrawTranscriptionView: $shouldRedrawTranscriptView)
             }
             
             .tabItem{
@@ -757,7 +750,7 @@ struct ContentView: View {
             .tag(1)
             
             NavigationView{
-                ManageSummariesView()
+                ManageSummariesView(shouldRedrawSummaryView:$shouldRedrawSummaryView )
                 
             }
             
@@ -898,11 +891,14 @@ struct ContentView: View {
         print("fileURL: ", fileURL)
         do{
             try data.write(to: fileURL)
+            shouldRedrawTranscriptView.toggle()
+            print("shouldRedrawChild:",shouldRedrawTranscriptView)
             print("Data saved successfully to \(fileURL)")
         }
         catch{
             print("Error saving data: \(error)")
         }
+        
         
     }
    
