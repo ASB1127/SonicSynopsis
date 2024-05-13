@@ -10,7 +10,7 @@ import Speech
 
 
 
-
+//Class KAudioRecorder Source From: https://github.com/KenanAtmaca/KAudioRecorder
 class KAudioRecorder: NSObject {
 
     
@@ -338,6 +338,57 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
     }
 }
 
+extension URL: Comparable {
+    public static func < (lhs: URL, rhs: URL) -> Bool {
+        if(lhs.containsNumber() == false && rhs.containsNumber()==false && lhs.absoluteString != rhs.absoluteString)
+        {
+            print("lhs < rhs")
+            print("lhs:",lhs.absoluteString)
+            print("rhs:",rhs.absoluteString)
+            return lhs.absoluteString < rhs.absoluteString
+        }
+        else {
+            let lhsNumber = lhs.extractNumber() ?? 0
+            let rhsNumber = rhs.extractNumber() ?? 0
+            return lhsNumber < rhsNumber
+        }
+    }
+    
+    func containsNumber() -> Bool {
+            
+            let pattern = "\\d+"
+            
+            do {
+               
+                let regex = try NSRegularExpression(pattern: pattern, options: [])
+                
+             
+                return regex.firstMatch(in: absoluteString, options: [], range: NSRange(location: 0, length: absoluteString.count)) != nil
+            } catch {
+                
+                print("Error creating regex: \(error)")
+                return false
+            }
+        }
+    
+    public func extractNumber() -> Int? {
+        guard let components = NSURLComponents(url: self, resolvingAgainstBaseURL: true),
+                      let path = components.path else {
+                    return nil
+                }
+                
+             
+                let lastPathComponent = NSString(string: path).lastPathComponent
+                
+          
+                let digits = lastPathComponent.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+                
+              
+                return Int(digits)
+            }
+    
+}
+
 
 class SharedTranscript: ObservableObject {
    
@@ -350,7 +401,7 @@ class SharedTranscript: ObservableObject {
 
 
 
-struct textobj:Codable, Identifiable{
+struct textobj:Codable, Identifiable,Comparable{
 var id = UUID()
 var name: String
 var content: String
@@ -364,7 +415,34 @@ enum CodingKeys: String, CodingKey {
             case name
             case content
         }
+    
+    static func < (lhs: textobj, rhs: textobj) -> Bool {
+        if (lhs.containsNumber() == false && rhs.containsNumber() && lhs.name != rhs.name) {
+               return lhs.name < rhs.name
+           } else {
+            
+               let lhsNumber = lhs.extractNumber()
+               let rhsNumber = rhs.extractNumber()
+               return lhsNumber < rhsNumber
+           }
+       }
+    
+    private func containsNumber() -> Bool {
+        let range = NSRange(location: 0, length: name.utf16.count)
+        let regex = try! NSRegularExpression(pattern: "\\d")
+        return regex.firstMatch(in: name, options: [], range: range) != nil
+    }
+
+    
+    static func == (lhs: textobj, rhs: textobj) -> Bool {
+            return lhs.name == rhs.name && lhs.content == rhs.content
+        }
+    private func extractNumber() -> Int {
+           let components = name.components(separatedBy: CharacterSet.decimalDigits.inverted)
+           return components.compactMap { Int($0) }.first ?? 0
+       }
 }
+
 
 struct Audio:Identifiable{
     let id = UUID()
@@ -387,12 +465,13 @@ struct ContentView: View {
     @State private var audioPlayer: AVAudioPlayer?
     @State private var recording = false
     @State private var newName: String = ""
- 
+  
     @State private var selectedIndex: Int? = nil
     @State private var audioNames: [Audio] = []
     @State private var selectedAudioIndex: Int?
     @State private var selectedItem: Audio? = nil
-    
+    @State private var shouldRedrawTranscriptView = false
+    @State private var shouldRedrawSummaryView = false
   
  
  
@@ -437,12 +516,11 @@ struct ContentView: View {
                     Text("Audio Recorder")
                         .font(.title)
                         .foregroundColor(.white)
-                    
+
                     List  {
                         let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
                         
                         ForEach(m4aAudios.indices, id: \.self) { index in
-                            //Text(audios[index].lastPathComponent)
                             HStack{
                                 
                                 Group {
@@ -599,24 +677,17 @@ struct ContentView: View {
                         
                     }
                     
-                    Spacer()
-                    let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
+                    Spacer(minLength: 120)
+                   
                     
-                    if(selectedIndex ?? 0<m4aAudios.count)
-                    {
-                        Text("Selected audio: \(m4aAudios[selectedIndex ?? 0].lastPathComponent)")
-                    }
-                    
-                    
-                    
-                    Spacer(minLength: 80)
+
                     Text("\(timeString(time: timeElapsed))")
                         .font(.system(size: 75))
                         .fontWeight(.light)
                         .padding()
                         .foregroundColor(.white)
                     
-                    Spacer(minLength: 120)
+//                    Spacer(minLength: 210)
                     
                     ZStack {
                         
@@ -625,7 +696,7 @@ struct ContentView: View {
                             .frame(width: 100, height: 100, alignment: .center)
                             .foregroundColor(Color(.systemIndigo))
                             .overlay(Text(recordStop))
-                            .offset(y: -120)
+                            .offset(y: -30)
                     }
                     .onTapGesture {
                         if recordStop == "Record" {
@@ -646,10 +717,10 @@ struct ContentView: View {
                     
                     
                     
-                    Spacer(minLength: 20)
+               
                     
                     
-                        .padding(.top, -70)
+                        .padding(.top, -200)
                 }
                 
                 
@@ -671,7 +742,7 @@ struct ContentView: View {
             .tag(0)
             
             NavigationView{
-                ManageTranscriptionsView()
+                ManageTranscriptionsView( shouldRedrawTranscriptionView: $shouldRedrawTranscriptView, shouldRedrawSummaryView: $shouldRedrawSummaryView)
             }
             
             .tabItem{
@@ -680,7 +751,7 @@ struct ContentView: View {
             .tag(1)
             
             NavigationView{
-                ManageSummariesView()
+                ManageSummariesView(shouldRedrawSummaryView: $shouldRedrawSummaryView)
                 
             }
             
@@ -737,6 +808,7 @@ struct ContentView: View {
             for i in result {
                 audios.append(i)
             }
+            audios = audios.sorted()
         } catch {
             print("Error getting audios: \(error.localizedDescription)")
         }
@@ -820,11 +892,14 @@ struct ContentView: View {
         print("fileURL: ", fileURL)
         do{
             try data.write(to: fileURL)
+            shouldRedrawTranscriptView.toggle()
+            print("shouldRedrawChild:",shouldRedrawTranscriptView)
             print("Data saved successfully to \(fileURL)")
         }
         catch{
             print("Error saving data: \(error)")
         }
+        
         
     }
    

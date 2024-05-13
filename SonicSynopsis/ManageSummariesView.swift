@@ -9,16 +9,18 @@ import SwiftUI
 
 struct ManageSummariesView: View {
     @State private var summary:textobj? = nil
-    
     @State private var summaryFile: [textobj] = []
     @State var name:String = ""
     @State private var selectedIndex:Int?
     @State private var selectedSummary: textobj? = nil
     @State var summaryContent:String = ""
+    @Binding var shouldRedrawSummaryView:Bool
+    
     var body: some View {
         VStack {
             List {
                 ForEach(summaryFile.indices, id: \.self) { index in
+                    
                     HStack {
                         Text(summaryFile[index].name)
                         Spacer()
@@ -48,6 +50,12 @@ struct ManageSummariesView: View {
                 // Load filenames and transcripts
                 loadFiles(pathExtension: "summary")
             }
+            .onChange(of: shouldRedrawSummaryView) { newValue in
+                            if newValue {
+                                loadFiles(pathExtension: "summary")
+                                shouldRedrawSummaryView = false
+                            }
+                        }
             .preferredColorScheme(.dark)
         }
         .sheet(item: $selectedSummary) { selectedSummary in
@@ -138,6 +146,7 @@ struct ManageSummariesView: View {
                     }
                     print("loadFiles summaryFile: ",summaryFile)
                     summaryFile = summaryFile.map { $0 }
+                    summaryFile = summaryFile.sorted()
                 }
             } catch {
                 print("Error while fetching filenames: \(error.localizedDescription)")

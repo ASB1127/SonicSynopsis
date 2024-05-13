@@ -11,7 +11,7 @@ import Foundation
 
 class FileManagerHelper {
     
-    // MARK: - Change File Name
+
     
     static func changeFileName(fileURL: URL, newName: String) {
         let fileManager = FileManager.default
@@ -26,7 +26,7 @@ class FileManagerHelper {
         }
     }
     
-    // MARK: - Get File URL
+  
     
     static func getFileURL(forFilename filename: String) -> URL? {
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -46,7 +46,7 @@ class FileManagerHelper {
         return nil
     }
     
-    // MARK: - Save File Name
+
     
     static func saveFileName(transcript: textobj, newName: String, jsonFile: inout [textobj]) {
         guard let index = jsonFile.firstIndex(where: { $0.id == transcript.id }) else { return }
@@ -64,7 +64,7 @@ class FileManagerHelper {
         }
     }
     
-    // MARK: - Delete File
+
     
     static func deleteTextFile(fileName: String) {
         let fileManager = FileManager.default
@@ -92,14 +92,20 @@ struct ManageTranscriptionsView: View {
     @State private var selectedTranscript: textobj? = nil
     @State var transcriptContent:String = ""
     @State private var summary: textobj? = nil
+    @Binding var shouldRedrawTranscriptionView: Bool
+    @Binding var shouldRedrawSummaryView:Bool
+  
     
     var body: some View {
+       
         VStack {
+            
             List {
                 ForEach(transcriptFile.indices, id: \.self) { index in
+                    
                     HStack {
                         Text(transcriptFile[index].name)
-                        Spacer()
+                        Spacer(minLength: 2)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -129,6 +135,7 @@ struct ManageTranscriptionsView: View {
                                 let recentFileName = getMostRecentSummaryFileName()
                                 print("recentFileName: ", recentFileName)
                                 saveSummaryToFile(summary: summary, fileName: recentFileName)
+                                shouldRedrawSummaryView = true
                             }
                             
                             
@@ -142,7 +149,14 @@ struct ManageTranscriptionsView: View {
             .onAppear {
                 // Load filenames and transcripts
                 loadFiles(pathExtension: "transcription")
+                
             }
+            .onChange(of: shouldRedrawTranscriptionView) { newValue in
+                            if newValue {
+                                loadFiles(pathExtension: "transcription")
+                                shouldRedrawTranscriptionView = false
+                            }
+                        }
             .preferredColorScheme(.dark)
         }
         .sheet(item: $selectedTranscript) { selectedTranscript in
@@ -161,6 +175,7 @@ struct ManageTranscriptionsView: View {
                    // Perform actions when the sheet is dismissed
                    loadFiles(pathExtension: "transcription")
                }
+            
             if #available(iOS 16.0, *) {
                 HStack {
                     Spacer(minLength: 20)
@@ -229,7 +244,6 @@ struct ManageTranscriptionsView: View {
         
         do {
             let fileURLs = try FileManager.default.contentsOfDirectory(at: documentsDirectory, includingPropertiesForKeys: nil)
-            //                print("loadFiles: fileURLs",fileURLs)
             let jsonFileURLs = fileURLs.filter { $0.pathExtension == pathExtension }
             if !jsonFileURLs.isEmpty {
                 transcriptFile = jsonFileURLs.compactMap { url in
@@ -237,7 +251,14 @@ struct ManageTranscriptionsView: View {
                     guard let transcript = try? JSONDecoder().decode(textobj.self, from: data) else { return nil }
                     return transcript
                 }
-                transcriptFile = transcriptFile.map { $0 }
+                
+                print("transcriptFile[len-1]",transcriptFile[transcriptFile.count-1].name)
+                print("transcriptFIle[len-2]")
+//                if(transcriptFile[transcriptFile.count-1].name != transcriptFile[transcriptFile.count-2].name)
+//                {
+                    transcriptFile = transcriptFile.map { $0 }
+//                }
+                transcriptFile = transcriptFile.sorted()
             }
         } catch {
             print("Error while fetching filenames: \(error.localizedDescription)")
@@ -275,10 +296,8 @@ private func saveSummaryToFile(summary: String, fileName:String){
     do{
         
         data = try JSONEncoder().encode(summary)
-        //        print("Encoded JSON data:", String(data: data, encoding: .utf8) ?? "Failed to decode data")
-        //DEBUG comment these two lines
-        //        let summary = try JSONDecoder().decode(textobj.self, from: data)
-        //        print("\nDecoded Transcript:", summary)
+        
+        
     }
     catch{
         
