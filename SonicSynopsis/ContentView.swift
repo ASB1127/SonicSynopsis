@@ -355,17 +355,17 @@ extension URL: Comparable {
     }
     
     func containsNumber() -> Bool {
-            // Define the regular expression pattern to match any sequence of digits
+            
             let pattern = "\\d+"
             
             do {
-                // Create a regular expression object
+               
                 let regex = try NSRegularExpression(pattern: pattern, options: [])
                 
-                // Match the regular expression in the absolute string
+             
                 return regex.firstMatch(in: absoluteString, options: [], range: NSRange(location: 0, length: absoluteString.count)) != nil
             } catch {
-                // Error handling for invalid regular expression
+                
                 print("Error creating regex: \(error)")
                 return false
             }
@@ -377,13 +377,13 @@ extension URL: Comparable {
                     return nil
                 }
                 
-                // Extract the last path component
+             
                 let lastPathComponent = NSString(string: path).lastPathComponent
                 
-                // Extract digits from the last path component
+          
                 let digits = lastPathComponent.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
                 
-                // Convert the extracted digits to an integer
+              
                 return Int(digits)
             }
     
@@ -515,12 +515,11 @@ struct ContentView: View {
                     Text("Audio Recorder")
                         .font(.title)
                         .foregroundColor(.white)
-                    
+
                     List  {
                         let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
                         
                         ForEach(m4aAudios.indices, id: \.self) { index in
-                            //Text(audios[index].lastPathComponent)
                             HStack{
                                 
                                 Group {
@@ -677,24 +676,24 @@ struct ContentView: View {
                         
                     }
                     
-                    Spacer()
+                    Spacer(minLength: 120)
                     let m4aAudios = audios.filter { $0.pathExtension == "m4a" }
                     
-                    if(selectedIndex ?? 0<m4aAudios.count)
-                    {
-                        Text("Selected audio: \(m4aAudios[selectedIndex ?? 0].lastPathComponent)")
-                    }
+//                    if(selectedIndex ?? 0<m4aAudios.count)
+//                    {
+//                        Text("Selected audio: \(m4aAudios[selectedIndex ?? 0].lastPathComponent)")
+//                    }
+//                    
                     
                     
-                    
-                    Spacer(minLength: 80)
+//                    Spacer(minLength: 200)
                     Text("\(timeString(time: timeElapsed))")
                         .font(.system(size: 75))
                         .fontWeight(.light)
                         .padding()
                         .foregroundColor(.white)
                     
-                    Spacer(minLength: 120)
+//                    Spacer(minLength: 210)
                     
                     ZStack {
                         
@@ -703,7 +702,7 @@ struct ContentView: View {
                             .frame(width: 100, height: 100, alignment: .center)
                             .foregroundColor(Color(.systemIndigo))
                             .overlay(Text(recordStop))
-                            .offset(y: -120)
+                            .offset(y: -30)
                     }
                     .onTapGesture {
                         if recordStop == "Record" {
@@ -724,10 +723,10 @@ struct ContentView: View {
                     
                     
                     
-                    Spacer(minLength: 20)
+               
                     
                     
-                        .padding(.top, -70)
+                        .padding(.top, -200)
                 }
                 
                 
