@@ -390,14 +390,6 @@ extension URL: Comparable {
 }
 
 
-class SharedTranscript: ObservableObject {
-   
-    @Published var transcription: textobj
-    init(transcription: textobj) {
-         self.transcription = transcription
-     }
-   
-}
 
 
 
@@ -751,7 +743,7 @@ struct ContentView: View {
             .tag(1)
             
             NavigationView{
-                ManageSummariesView(shouldRedrawSummaryView: $shouldRedrawSummaryView)
+                ManageSummariesView()
                 
             }
             

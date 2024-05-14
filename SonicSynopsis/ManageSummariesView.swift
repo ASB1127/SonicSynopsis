@@ -9,34 +9,34 @@ import SwiftUI
 
 struct ManageSummariesView: View {
     @State private var summary:textobj? = nil
+    @ObservedObject var folder = Folder(filter: "summary")
     @State private var summaryFile: [textobj] = []
     @State var name:String = ""
     @State private var selectedIndex:Int?
     @State private var selectedSummary: textobj? = nil
     @State var summaryContent:String = ""
-    @Binding var shouldRedrawSummaryView:Bool
+ 
     
     var body: some View {
         VStack {
             List {
-                ForEach(summaryFile.indices, id: \.self) { index in
+                ForEach(folder.transcriptFile.indices, id: \.self) { index in
                     
                     HStack {
-                        Text(summaryFile[index].name)
+                        Text(folder.transcriptFile[index].name)
                         Spacer()
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
                         selectedIndex = index
-                        selectedSummary = summaryFile[index]
+                        selectedSummary = folder.transcriptFile[index]
                     }
                     
                     .swipeActions(allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             selectedIndex = index
                             
-                            FileManagerHelper.deleteTextFile(fileName:summaryFile[selectedIndex ?? -1].name )
-                            loadFiles(pathExtension: "summary")
+                            FileManagerHelper.deleteTextFile(fileName:folder.transcriptFile[selectedIndex ?? -1].name )
                         } label: {
                             Label("Delete", systemImage: "trash.fill")
                         }
@@ -46,16 +46,7 @@ struct ManageSummariesView: View {
                 }
                
             }
-            .onAppear {
-                // Load filenames and transcripts
-                loadFiles(pathExtension: "summary")
-            }
-            .onChange(of: shouldRedrawSummaryView) { newValue in
-                            if newValue {
-                                loadFiles(pathExtension: "summary")
-                                shouldRedrawSummaryView = false
-                            }
-                        }
+         
             .preferredColorScheme(.dark)
         }
         .sheet(item: $selectedSummary) { selectedSummary in
@@ -64,13 +55,13 @@ struct ManageSummariesView: View {
                 summaryName: $name,
                 summaryContent: $summaryContent,
                 initialName: selectedSummary.name,
-                summaryFile:summaryFile,
+                summaryFile:folder.transcriptFile,
                 fileManagerHelper: FileManagerHelper.init(),
                 summary: selectedSummary
             )
             .onDisappear {
                    // Perform actions when the sheet is dismissed
-                   loadFiles(pathExtension: "summary")
+                var res = folder.loadFiles(pathExtension: "summary")
                }
            
             if #available(iOS 16.0, *) {
@@ -92,7 +83,7 @@ struct ManageSummariesView: View {
                             print("jsonFiles: ",summaryFile)
                             let nameSummary = "\(name).summary"
                             FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameSummary)
-                            FileManagerHelper.saveFileName(transcript: summaryFile[selectedIndex!], newName: nameSummary, jsonFile: &summaryFile)
+                            FileManagerHelper.saveFileName(transcript: folder.summaryFile[selectedIndex!], newName: nameSummary, jsonFile: &folder.summaryFile)
                             
                             
                             
@@ -129,33 +120,10 @@ struct ManageSummariesView: View {
         }
     }
     
-    private func loadFiles(pathExtension:String) {
-           print("loadFiles: pathExtension",pathExtension)
-            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            
-            do {
-                let fileURLs = try FileManager.default.contentsOfDirectory(at: documentsDirectory, includingPropertiesForKeys: nil)
-                
-                let summaryFileURLs = fileURLs.filter { $0.pathExtension == pathExtension }
-                print("loadFiles: summaryFileURLs",summaryFileURLs)
-                if !summaryFileURLs.isEmpty {
-                    summaryFile = summaryFileURLs.compactMap { url in
-                        guard let data = try? Data(contentsOf: url) else { return nil }
-                        guard let transcript = try? JSONDecoder().decode(textobj.self, from: data) else { return nil }
-                        return transcript
-                    }
-                    print("loadFiles summaryFile: ",summaryFile)
-                    summaryFile = summaryFile.map { $0 }
-                    summaryFile = summaryFile.sorted()
-                }
-            } catch {
-                print("Error while fetching filenames: \(error.localizedDescription)")
-            }
-        }
+   
     
     struct EditSummariesView: View {
         
-        // MARK: - Properties
         @Environment (\.dismiss) var submit
         @Binding var summaryName: String
         @Binding var summaryContent: String
@@ -163,7 +131,6 @@ struct ManageSummariesView: View {
         @State var summaryFile:[textobj] = []
         var fileManagerHelper:FileManagerHelper
         var summary:textobj
-        // MARK: - Body
  
         var body: some View {
                 Spacer(minLength: 20)
@@ -180,12 +147,6 @@ struct ManageSummariesView: View {
                         Text("\(summaryContent)")
                             .font(.body)
                             .fontWeight(.medium)
-                    }
-                   
-                    .onChange(of: summaryName) { newName in
-                        if !newName.isEmpty {
-                            initialName = ""
-                        }
                     }
                     Button("Submit") {
                         submit()
