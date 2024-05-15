@@ -75,16 +75,19 @@ struct ManageSummariesView: View {
                             summaryContent = selectedSummary.content
                         }
                         .onSubmit{
-                            let fileURL = FileManagerHelper.getFileURL(forFilename: summaryFile[selectedIndex ?? -1].name)
+                            let fileURL = FileManagerHelper.getFileURL(forFilename: folder.transcriptFile[selectedIndex ?? -1].name)
                             
                             print("newName: ",name)
                             
-                            print("oldName: ",summaryFile[selectedIndex ?? -1].name)
-                            print("jsonFiles: ",summaryFile)
-                            let nameSummary = "\(name).summary"
-                            FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameSummary)
-                            FileManagerHelper.saveFileName(transcript: folder.summaryFile[selectedIndex!], newName: nameSummary, jsonFile: &folder.summaryFile)
+                            print("oldName: ",folder.transcriptFile[selectedIndex ?? -1].name)
+                            print("jsonFiles: ",folder.transcriptFile)
+                            let nameTranscript = "\(name).transcription"
+                            //                        saveFileName(transcript: jsonFile[selectedIndex!], newName: name)
                             
+                            FileManagerHelper.changeFileName(fileURL: fileURL!, newName: nameTranscript)
+                            FileManagerHelper.saveFileName(transcript: folder.transcriptFile[selectedIndex!], newName: nameTranscript, jsonFile: &folder.transcriptFile)
+                            //                        deleteFileName(fileURL: fileURL!, filename: oldName)
+                            //                        jsonFile[selectedIndex ?? -1].name=name
                             
                             
                             
@@ -147,6 +150,11 @@ struct ManageSummariesView: View {
                         Text("\(summaryContent)")
                             .font(.body)
                             .fontWeight(.medium)
+                    }
+                    .onChange(of: summaryName) { newName in
+                        if !newName.isEmpty {
+                            initialName = ""
+                        }
                     }
                     Button("Submit") {
                         submit()
