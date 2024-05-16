@@ -340,7 +340,6 @@ extension KAudioRecorder: AVAudioPlayerDelegate {
 
 extension URL: Comparable {
     public static func < (lhs: URL, rhs: URL) -> Bool {
-       
         if(lhs.containsNumber() == false && rhs.containsNumber()==false && lhs.absoluteString != rhs.absoluteString)
         {
             print("lhs < rhs")
@@ -351,8 +350,6 @@ extension URL: Comparable {
         else {
             let lhsNumber = lhs.extractNumber() ?? 0
             let rhsNumber = rhs.extractNumber() ?? 0
-            print("lhs:",lhsNumber)
-            print("rhs:",rhsNumber)
             return lhsNumber < rhsNumber
         }
     }
@@ -393,6 +390,14 @@ extension URL: Comparable {
 }
 
 
+class SharedTranscript: ObservableObject {
+   
+    @Published var transcription: textobj
+    init(transcription: textobj) {
+         self.transcription = transcription
+     }
+   
+}
 
 
 
@@ -746,7 +751,7 @@ struct ContentView: View {
             .tag(1)
             
             NavigationView{
-                ManageSummariesView()
+                ManageSummariesView(shouldRedrawSummaryView: $shouldRedrawSummaryView)
                 
             }
             
@@ -803,12 +808,7 @@ struct ContentView: View {
             for i in result {
                 audios.append(i)
             }
-            audios = audios.sorted { url1, url2 in
-                let lastPathComponent1 = url1.lastPathComponent
-                let lastPathComponent2 = url2.lastPathComponent
-                
-                return lastPathComponent1 < lastPathComponent2
-            }
+            audios = audios.sorted()
         } catch {
             print("Error getting audios: \(error.localizedDescription)")
         }
